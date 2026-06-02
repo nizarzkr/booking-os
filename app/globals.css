@@ -1,26 +1,15 @@
+/* Ordre des cascade layers.
+   Tailwind "base" (preflight) AVANT Mantine pour ne pas casser les composants,
+   et "utilities" Tailwind APRÈS Mantine pour pouvoir surcharger ponctuellement.
+   Thème sombre natif — voir DESIGN_SYSTEM.md. */
+@layer theme, base, mantine, components, utilities;
+
 @import "tailwindcss";
+@import "@mantine/core/styles.layer.css";
+@import "@mantine/notifications/styles.layer.css";
+@import "@mantine/dates/styles.layer.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
 }

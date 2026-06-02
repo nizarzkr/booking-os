@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+build
+package-lock.json
+next-env.d.ts
+
+# Docs projet (formatage manuel volontaire)
+AGENTS.md
+CLAUDE.md
+ROADMAP.md
+JOURNAL.md
+DESIGN_SYSTEM.md
+PROJET_VISION.md

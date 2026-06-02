@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Booking OS
 
-## Getting Started
+SaaS de booking musical pour artistes indépendants. Objectif MVP : permettre à un musicien de savoir exactement **qui contacter ou relancer aujourd'hui** pour décrocher plus de dates.
 
-First, run the development server:
+> Outil d'action quotidienne, pas un CRM généraliste.
+
+## Documentation projet
+
+| Fichier | Rôle |
+|---------|------|
+| [`CLAUDE.md`](./CLAUDE.md) | Contexte technique (stack, schéma DB, conventions) |
+| [`ROADMAP.md`](./ROADMAP.md) | Roadmap détaillée (8 phases, 22 étapes) |
+| [`JOURNAL.md`](./JOURNAL.md) | Journal de construction (décisions, sessions) |
+| [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Charte graphique et composants UI |
+
+## Stack
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript** strict
+- **Tailwind CSS v4** + **Mantine v8** (thème sombre natif)
+- **Supabase** (PostgreSQL + Auth + RLS) — _étape 0.2_
+- **Sentry** (monitoring), **Vercel** (déploiement)
+
+## Démarrage
 
 ```bash
+# 1. Variables d'environnement
+cp .env.local.example .env.local   # puis remplir les valeurs
+
+# 2. Lancer le serveur de dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Action |
+|--------|--------|
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production |
+| `npm run start` | Démarre le build de production |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | Vérification TypeScript (`tsc --noEmit`) |
+| `npm run format` | Formate le code avec Prettier |
+| `npm run format:check` | Vérifie le formatage sans écrire |
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  (auth)/        → pages publiques (login, register) — à venir
+  (app)/         → pages protégées (dashboard, contacts...) — à venir
+components/
+  ui/            → composants génériques réutilisables
+  layout/        → sidebar, header, navigation
+lib/
+  supabase/      → clients Supabase (server + browser)
+  utils/         → helpers
+types/           → types TypeScript globaux
+hooks/           → custom React hooks
+```
