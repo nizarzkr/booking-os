@@ -131,6 +131,43 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ---
 
+## 2026-06-02 — Étape 0.2 : Setup Supabase (avec Claude Code)
+
+### Étapes complétées
+- [x] 0.2 — Setup Supabase (schéma, RLS, seed, types, clients)
+
+### Décisions prises
+- **Projet cloud** (Docker absent → pas de stack local) : `mybooking`, ref `vsbcvqeewmqntvgrphcw`, org `nizarzkr's Org`, région eu-west-3, gratuit. Provisionné via le **MCP Supabase**.
+- **Auth** : email + mot de passe uniquement (magic link / Google reportés).
+- **Clé publiable moderne** (`sb_publishable_...`) côté front → variable `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- **RLS** : policies `TO authenticated` + prédicat d'ownership (`workspace_id = private.current_workspace_id()`), `USING` + `WITH CHECK`. Helpers SECURITY DEFINER déplacés dans le schéma `private` (non exposé à la Data API).
+- **`gmail_tokens`** : RLS sans policy → accès `service_role` uniquement.
+
+### Migrations
+- `20260602161830_initial_schema` — 11 tables, 5 enums, RLS, triggers (`handle_new_user`, `updated_at`).
+- `20260602162025_harden_rls_helper_functions` — helpers vers schéma `private`, policies recréées.
+
+### Seed
+- User démo `demo@bookingos.test` / `Demo123!` + 1 workspace, 3 contacts, 2 organisations, 3 opportunités, 3 tâches (dont 1 en retard, 1 option avec deadline). Idempotent. Fichier : `supabase/seed.sql`.
+
+### Changements au schéma DB
+- Ajout `created_at` sur `gmail_tokens`, `google_calendar_event_id` sur `opportunities` (déjà au schéma cible). Schéma `private` pour les helpers.
+
+### Vérifications
+- Advisors sécurité : **clean** (1 INFO voulu sur `gmail_tokens`).
+- `list_tables` : 11 tables, RLS active partout.
+- Types TS générés → `types/database.types.ts`. Clients Supabase câblés avec `<Database>`.
+
+### À faire / reporté
+- Confirmation email (ON par défaut) : à gérer en 1.1.
+- `supabase link` + `db push` (CI/prod) : nécessite `supabase login`.
+- Service role key : à récupérer au dashboard pour la phase Gmail.
+
+### État en fin de session
+- Prochaine étape : **1.1 — Authentification**
+
+---
+
 <!-- TEMPLATE — copier-coller pour chaque nouvelle session
 
 ## YYYY-MM-DD — [Titre de la session]

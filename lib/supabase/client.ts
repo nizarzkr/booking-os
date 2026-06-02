@@ -1,12 +1,14 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+import type { Database } from "@/types/database.types";
+
 /**
  * Client Supabase pour les Client Components (navigateur).
- * À paramétrer avec `<Database>` une fois les types générés (étape 0.2).
+ * Utilise la clé publiable (sb_publishable_...).
  */
 export function createClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
   );
 }

@@ -157,8 +157,8 @@ gmail_tokens (
 ```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=   # clé publiable sb_publishable_... (front)
+SUPABASE_SERVICE_ROLE_KEY=              # serveur uniquement
 
 # Google OAuth (Gmail + Calendar)
 GOOGLE_CLIENT_ID=
@@ -197,7 +197,7 @@ Principes clés :
 | Étape | Statut | Notes |
 |-------|--------|-------|
 | 0.1 — Setup repo | ✅ Fait | Next 16 + React 19 + Tailwind v4 + Mantine v8. Build/typecheck/lint OK. Sentry reporté. |
-| 0.2 — Setup Supabase | ⬜ À faire | |
+| 0.2 — Setup Supabase | ✅ Fait | Projet cloud `mybooking` (ref `vsbcvqeewmqntvgrphcw`). 11 tables + RLS, helpers en schéma `private`, seed + types TS. Advisors clean. |
 | 1.1 — Auth | ⬜ À faire | |
 | 1.2 — Onboarding | ⬜ À faire | |
 | 2.1 — Liste contacts | ⬜ À faire | |
@@ -239,6 +239,10 @@ Principes clés :
 | 2026-06-02 | Tailwind **v4** (config CSS-based) + Mantine via CSS *layered* | create-next-app fournit Tailwind v4 ; cohabitation gérée par ordre de `@layer` (`theme, base, mantine, components, utilities`) pour éviter que le preflight Tailwind n'écrase Mantine. |
 | 2026-06-02 | Projet npm nommé `mybooking`, repo dans `Desktop/BOOKING OS/mybooking/` | « BOOKING OS » invalide comme nom npm (espaces/majuscules) ; nom clarifie aussi l'arborescence. Dossier imbriqué en double supprimé. |
 | 2026-06-02 | Sentry reporté (compte existant, DSN à brancher plus tard) | Wizard interactif ; placeholder `NEXT_PUBLIC_SENTRY_DSN` laissé dans `.env.local.example`. |
+| 2026-06-02 | Projet Supabase cloud (pas de stack local) | Docker absent sur la machine ; provisionné via le MCP Supabase. Projet `mybooking` ref `vsbcvqeewmqntvgrphcw` (eu-west-3). |
+| 2026-06-02 | Isolation RLS via `private.current_workspace_id()` (SECURITY DEFINER) | Helpers déplacés du schéma `public` vers `private` pour ne pas être appelables via la Data API (advisors 0028/0029). Policies `TO authenticated` + prédicat d'ownership. |
+| 2026-06-02 | Clé publiable moderne (`sb_publishable_...`) côté front | Best practice Supabase (rotation indépendante) ; variable `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` au lieu de l'ancienne `..._ANON_KEY`. |
+| 2026-06-02 | `gmail_tokens` : RLS sans policy (accès `service_role` uniquement) | Les tokens OAuth ne doivent jamais fuiter au navigateur ; gérés exclusivement côté serveur. |
 
 ---
 

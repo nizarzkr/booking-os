@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:types": "supabase gen types typescript --project-id vsbcvqeewmqntvgrphcw --schema public > types/database.types.ts"
   },
   "dependencies": {
     "@mantine/core": "^8.3.18",
