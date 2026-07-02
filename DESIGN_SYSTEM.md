@@ -1,40 +1,63 @@
-# **DESIGN\_SYSTEM.md**
+# DESIGN_SYSTEM.md — Booking OS
 
-## **Philosophie et Ton visuel**
+> DA « **Studio** » — dark-first minimal (esprit Linear / Raycast / Vercel),
+> accent violet, typo Geist. Câblée dans `lib/theme.ts` + `app/globals.css`.
+> Piloté par **Mantine v8** (pas de shadcn). Tailwind v4 est présent mais inerte.
 
-* **Ambiance** : Musiques actuelles, moderne, créatif et ludique.  
-* **Mots-clés** : Vibrant, Amical, Épuré, "Punchy".  
-* **Inspirations** : Claap, Mailchimp (pour le côté friendly et les formes douces), Spotify (pour le contraste sombre/fluo).  
-* **Thème principal** : Dark mode natif (prévu pour être inversé en Light mode si besoin, mais pensé d'abord pour le sombre).
+## Philosophie
 
-## **Couleurs (Basé sur Tailwind CSS)**
+- **Sombre, contrasté, pro.** Un outil de travail quotidien, pas un site vitrine.
+- **La bordure fait la surface** : l'élévation vient du contraste canvas/surface + une bordure 1px, pas des ombres. Ombres réservées aux overlays (menus, modals).
+- **Une seule couleur d'accent** (violet) pour l'action, l'état actif, le focus. Le reste est neutre.
+- **Une seule famille sémantique colorée** : les statuts d'opportunité. Tout le reste (rôles, types d'orga) est neutre.
 
-*Les couleurs ci-dessous sont pensées pour le Dark Mode.*
+## Couleurs
 
-* **Background (Fond principal)** : Zinc-950 (`#09090b`) \- Un noir très profond mais texturé.  
-* **Surface (Cards, Modals)** : Zinc-900 (`#18181b`) \- Légèrement plus clair pour détacher les éléments du fond.  
-* **Primary / Accent** : Violet-500 (`#8b5cf6`) ou Indigo-500 (`#6366f1`). *Note: Apporte le côté pop, créatif et Claap/Mailchimp.*  
-* **Accent secondaire (Tags, Success, actions rapides)** : Emerald-400 (`#34d399`) \- Un vert néon doux qui rappelle les codes de la musique/Spotify.  
-* **Text primary** : Zinc-50 (`#fafafa`) \- Blanc cassé pour ne pas fatiguer les yeux.  
-* **Text secondary** : Zinc-400 (`#a1a1aa`) \- Gris moyen pour les labels et les infos secondaires (ex: nom de la salle, date passée).  
-* **Border** : Zinc-800 (`#27272a`) \- Ligne très subtile.
+Neutres (tuple Mantine `dark`, index 0 = texte → 7 = canvas) :
 
-## **Typographie**
+| Rôle | Hex | Token |
+|------|-----|-------|
+| Canvas (fond) | `#0B0C0E` | `dark.7` / `--mantine-color-body` |
+| Surface (cards, sidebar, modals) | `#141518` | `dark.6` |
+| Surface hover / input | `#1B1D21` | — |
+| Bordure | `#26282D` | `dark.5` |
+| Bordure forte (hover/focus) | `#33363D` | `dark.4` |
+| Texte principal | `#F4F5F6` | `dark.0` |
+| Texte secondaire | `#9BA1A6` | `dark.2` (`c="dimmed"`) |
+| Texte discret | `#6B7178` | `dark.3` |
 
-* **Font-family** : `Plus Jakarta Sans`   
-* **Heading** : Font-weight 600 (Semibold) ou 700 (Bold), tracking-tight (lettres resserrées pour un look moderne).  
-* **Body** : Font-weight 400 (Regular), leading-relaxed (interligne aéré pour le confort de lecture des contrats/notes).
+**Accent (Primary) — violet** : main `#7C6AFF` (`violet.4` en dark), texte blanc dessus (`autoContrast`). Usage **strict** : bouton primaire, item de nav actif, focus, élément « courant ». Jamais en décoration.
 
-## **Composants (UI)**
+**Sémantique** (statuts / feedback uniquement) : Mantine `green` (positif), `yellow` (attention), `red` (danger/retard/annulé), `blue` (info), `gray` (neutre).
 
-* **Boutons** : Toujours `rounded-full` (pill shape), aucune ombre (`shadow-none`). En mode hover, jouer sur la luminosité ou un léger scale (`hover:scale-105 transition-transform`).  
-* **Cards** : `rounded-2xl` (des coins bien ronds pour le côté Mailchimp/Claap), `border border-zinc-800`, aucune ombre portée (`shadow-none`).  
-* **Inputs & Champs de formulaire** : `rounded-xl` ou `rounded-full`, fond légèrement contrasté (`bg-zinc-900/50`), border au focus de la couleur Accent.  
-* **Tags (Genres musicaux, Statuts de booking)** : `rounded-full`, petits, avec des couleurs de fond avec 10% ou 20% d'opacité (ex: `bg-violet-500/10 text-violet-400`).
+**Mapping statuts d'opportunité** (`STATUS_META`) : Prospect `gray` · Contacté `blue` · Négociation `yellow` · Option `violet` · Confirmé `green` · Annulé `red`.
+**Rôles de contact / types d'orga** : `gray` (neutre, info secondaire).
 
-## **Spacing & Layout**
+## Typographie — Geist
 
-* **Système de grille** : Flexbox / CSS Grid.  
-* **Spacing** : Multiples de 4px (Standard Tailwind : p-2, p-4, p-6).  
-* **Respiration** : Laisser beaucoup de `padding` dans les cards (ex: `p-6` ou `p-8`) pour garder l'aspect "très léger et agréable". Ne pas surcharger l'écran.
+- **Geist Sans** partout (titres + corps), via `geist/font/sans` (`--font-geist-sans`).
+- **Geist Mono** pour les **nombres** (compteurs du dashboard, cachets) : `ff="monospace"`.
+- Échelle : H1 28 / H2 20 / H3 16 / corps 14 / small 13 / xs 12. Poids **400 / 500 / 600** (600 pour titres et emphases, fini les 700 systématiques).
 
+## Formes & élévation
+
+- **Radius** : inputs/boutons `md` = 8px · cards/modals `lg` = 12px · badges/tags `sm` = 6px. **Pas de pilule (9999)**.
+- **Boutons** : `filled` violet (primaire) · `default` = surface + bordure 1px · `subtle` = texte. Poids 500. Focus ring violet. **Aucun style « sticker »** (supprimé).
+- **Cards / Paper / Modal** : bordure 1px `dark.5`, fond `dark.6`, pas d'ombre.
+- **Badges** : `variant="light"` (fond teinté + texte de la couleur), radius `sm`. Neutres par défaut, colorés seulement pour les statuts.
+- **Liens** (`Anchor`) : couleur par défaut Mantine (violet) ou near-white dans les tables, soulignement au hover. Plus de soulignement mint permanent.
+
+## Espacement (base 4, strict)
+
+`xs 4 · sm 8 · md 16 · lg 24 · xl 32`. Padding de card = `lg` (24) · gap de page = `lg` · gap toolbar = `sm/md` · gap intra-card = `xs/sm`.
+
+## Do / Don't
+
+**Do** : dark + 1 accent violet · bordures pour l'élévation · statuts = seule couleur sémantique · nombres en Geist Mono · échelles strictes.
+**Don't** : pas d'ombres (hors overlays) · pas de pilules · pas de pastels décoratifs (mint/sky/peach retirés) · violet jamais en déco · pas de serif.
+
+## Stack & maintenance
+
+- Design system = **thème Mantine** (`lib/theme.ts`) + `app/globals.css` (minimal). Pas de tokens shadcn/HSL.
+- Rester sur Mantine (migrer vers shadcn = réécrire toute l'app, sans bénéfice).
+- Tailwind v4 : importé mais non utilisé pour le style produit ; à retirer si on veut alléger (non bloquant).

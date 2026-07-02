@@ -1,7 +1,8 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import {
   ColorSchemeScript,
   MantineProvider,
@@ -10,12 +11,6 @@ import {
 import { Notifications } from "@mantine/notifications";
 
 import { theme } from "@/lib/theme";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-jakarta",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Booking OS",
@@ -27,12 +22,17 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={jakarta.variable} {...mantineHtmlProps}>
+    <html
+      lang="fr"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      {...mantineHtmlProps}
+    >
       <head>
-        <ColorSchemeScript defaultColorScheme="dark" />
+        {/* App dark-only : on force le scheme (ignore le localStorage/état résiduel). */}
+        <ColorSchemeScript forceColorScheme="dark" />
       </head>
       <body>
-        <MantineProvider theme={theme} defaultColorScheme="dark">
+        <MantineProvider theme={theme} forceColorScheme="dark">
           <Notifications />
           {children}
         </MantineProvider>

@@ -1,7 +1,7 @@
 /* Ordre des cascade layers.
-   Tailwind "base" (preflight) AVANT Mantine pour ne pas casser les composants,
-   et "utilities" Tailwind APRÈS Mantine pour pouvoir surcharger ponctuellement.
-   Thème sombre natif — voir DESIGN_SYSTEM.md. */
+   Tailwind "base" (preflight) AVANT Mantine, "utilities" APRÈS.
+   DA « Studio » — dark-first minimal. Tout le style vit dans le thème Mantine
+   (lib/theme.ts) ; ce fichier reste minimal. Voir DESIGN_SYSTEM.md. */
 @layer theme, base, mantine, components, utilities;
 
 @import "tailwindcss";
@@ -12,4 +12,9 @@
 html,
 body {
   height: 100%;
+}
+
+/* Canvas sombre (Mantine pose --mantine-color-body en dark scheme). */
+body {
+  background: var(--mantine-color-body);
 }
