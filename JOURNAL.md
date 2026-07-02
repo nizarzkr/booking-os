@@ -6,6 +6,32 @@
 
 ---
 
+## 2026-07-02 — Consolidation avant 5.2 : fuseau horaire + page /settings
+
+### Contexte
+Choix « consolider avant d'empiler Gmail » : traiter le finding d'audit #2 (le plus impactant produit) et créer un `/settings` minimal (prérequis pour héberger le bouton « Connecter Gmail » de la 5.2).
+
+### Fix #2 — fuseau horaire (« aujourd'hui » faux)
+- Cause : `dayjs()` calcule la date dans le fuseau du runtime → UTC en Server Component (Vercel), fuseau navigateur côté client → décalage d'un jour près de minuit sur « à relancer aujourd'hui »/« en retard ».
+- Fix : helper centralisé `lib/utils/date.ts` (`todayISO`, `isoInDays`, `todayLabelFr`) figé sur **Europe/Paris** (plugins dayjs utc+timezone). Serveur et client toujours d'accord. Constante `APP_TZ` (à rendre configurable par workspace plus tard).
+- Remplacé les 5 calculs épars (dashboard `page.tsx`, `task-types.ts`, `pipeline-view.tsx`). Plus aucun `dayjs()` « today » résiduel.
+- Validé : sous process UTC à 22:30Z (= 00:30 Paris), ancien = 2 juillet (faux), helper = 3 juillet (correct).
+
+### Page /settings (minimale)
+- `app/(app)/settings/` (page serveur + action `updateWorkspace`) + `components/settings/settings-view.tsx`.
+- Sections : **Espace de travail** (édition nom + ville), **Compte** (email), **Intégrations** (Gmail « Non connecté » — placeholder câblé en 5.2).
+- `updateWorkspace` utilise `.select()` pour vérifier qu'une ligne est touchée (applique le finding #4 sur ce nouveau code).
+- Lien « Réglages » ajouté à la sidebar.
+- Note : statut de connexion Gmail non lisible côté client (`gmail_tokens` en RLS service_role only) → vrai statut à brancher en 5.2.
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build prod ✅ (route `/settings` générée) · E2E navigateur validé par l'utilisateur.
+
+### État
+- Findings d'audit restants : #3 (confirmation email register), #5 (leaked password protection). Reprise : **5.2 — Connexion Gmail (OAuth2)**.
+
+---
+
 ## 2026-07-02 — Audit qualité + sécurisation du travail (commit Phases 1→5.1)
 
 ### Contexte

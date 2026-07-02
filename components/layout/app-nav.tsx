@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { label: "Opportunités", href: "/opportunities" },
   { label: "Tâches", href: "/tasks" },
   { label: "Templates", href: "/templates" },
+  { label: "Réglages", href: "/settings" },
 ];
 
 export function AppNav({
