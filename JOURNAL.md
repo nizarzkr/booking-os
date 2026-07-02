@@ -6,6 +6,29 @@
 
 ---
 
+## 2026-07-02 — Fix #3 (register) + Étape 5.3 : Envoi d'email — scaffold
+
+### Fix #3 — confirmation email au register (audit)
+- Avant : `signUp` avec confirmation ON ne renvoie pas de session → `redirectAfterAuth` renvoyait silencieusement vers `/login`, sans explication.
+- Fix : `AuthState` gagne un variant `{ notice }`. Si `signUp` ne renvoie pas de session → message vert « Vérifie ta boîte mail pour confirmer ». Couvre aussi le cas « email déjà inscrit » (session nulle) sans divulguer l'existence du compte. `AuthForm` affiche error (rouge) / notice (vert). **Testable sans creds.**
+
+### Étape 5.3 — Envoi d'email (scaffold, dépend des tokens 5.2)
+- `lib/gmail/oauth.ts` : ajout `refreshAccessToken` (grant_type=refresh_token).
+- `lib/gmail/client.ts` : `getGmailConnection(workspaceId)` — lit `gmail_tokens` (admin), rafraîchit si expiré (marge 1 min) et persiste le nouveau token, `null` si non connecté.
+- `lib/gmail/send.ts` : `sendGmailMessage` — MIME texte UTF-8 (objet en encoded-word RFC 2047), base64url, `messages.send`.
+- `app/(app)/emails/actions.ts` : `sendEmail` — valide, envoie via Gmail, journalise dans `email_logs` (direction outbound, `read:true`, gmail_message/thread_id) via le client authentifié (RLS `ws_all`). Erreur claire si aucune boîte connectée.
+- `components/emails/send-email-modal.tsx` : modal réutilisable (choix template → pré-remplit objet+corps via `renderTemplate` + variables, tout éditable).
+- Branché sur la **fiche contact** : bouton « Envoyer un email » (si email présent), variables `contact_name` + `artist_name` (nom du workspace). Page contact fetch templates + nom d'artiste.
+- Reste : brancher aussi la fiche opportunité (variables venue/gig_date/fee/city) — à faire.
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build ✅. Envoi Gmail **non testable** sans boîte connectée (creds 5.2). Fix #3 testable dès maintenant.
+
+### État
+- Findings d'audit restants : #5 (leaked password protection, toggle Supabase). Reprise : brancher l'envoi sur la fiche opportunité, puis **5.4 — Réception des réponses (inbound)**.
+
+---
+
 ## 2026-07-02 — Étape 5.2 : Connexion Gmail (OAuth2) — scaffold
 
 ### Contexte

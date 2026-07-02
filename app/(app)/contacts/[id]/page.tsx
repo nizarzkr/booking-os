@@ -33,20 +33,26 @@ export default async function ContactDetailPage({
     .map((l) => l.organizations)
     .filter((o): o is Organization => o !== null);
 
-  // Toutes les organisations du workspace (pour le sélecteur de liaison)
-  // + tâches liées à ce contact.
-  const [{ data: allOrgs }, { data: tasks }] = await Promise.all([
-    supabase
-      .from("organizations")
-      .select("id, name, type, city, country, website, notes")
-      .order("name", { ascending: true }),
-    supabase
-      .from("tasks")
-      .select("id, title, due_date, done, opportunity_id, contact_id")
-      .eq("contact_id", id)
-      .order("done", { ascending: true })
-      .order("due_date", { ascending: true, nullsFirst: false }),
-  ]);
+  // Toutes les organisations du workspace (sélecteur de liaison), tâches liées,
+  // templates d'email (pour l'envoi) et nom d'artiste (variable de template).
+  const [{ data: allOrgs }, { data: tasks }, { data: templates }, { data: ws }] =
+    await Promise.all([
+      supabase
+        .from("organizations")
+        .select("id, name, type, city, country, website, notes")
+        .order("name", { ascending: true }),
+      supabase
+        .from("tasks")
+        .select("id, title, due_date, done, opportunity_id, contact_id")
+        .eq("contact_id", id)
+        .order("done", { ascending: true })
+        .order("due_date", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("email_templates")
+        .select("id, name, subject, body")
+        .order("name", { ascending: true }),
+      supabase.from("workspaces").select("name").limit(1).maybeSingle(),
+    ]);
 
   return (
     <ContactDetail
@@ -54,6 +60,8 @@ export default async function ContactDetailPage({
       linkedOrgs={linkedOrgs}
       allOrgs={allOrgs ?? []}
       tasks={tasks ?? []}
+      templates={templates ?? []}
+      artistName={ws?.name ?? ""}
     />
   );
 }

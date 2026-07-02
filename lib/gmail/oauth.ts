@@ -79,6 +79,30 @@ export async function exchangeCodeForTokens(
   return (await res.json()) as GoogleTokens;
 }
 
+export type RefreshedToken = { access_token: string; expires_in: number };
+
+/** Rafraîchit l'access token à partir du refresh_token (tokens courts ~1h). */
+export async function refreshAccessToken(
+  config: GoogleOAuthConfig,
+  refreshToken: string,
+): Promise<RefreshedToken> {
+  const res = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Rafraîchissement du token échoué (${res.status}).`);
+  }
+  const data = (await res.json()) as RefreshedToken;
+  return data;
+}
+
 /** Adresse Gmail réellement connectée (pour l'afficher / matcher les envois). */
 export async function fetchGmailAddress(accessToken: string): Promise<string> {
   const res = await fetch(GMAIL_PROFILE_URL, {

@@ -25,6 +25,8 @@ import {
   unlinkOrganization,
 } from "@/app/(app)/contacts/[id]/actions";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
+import { SendEmailModal } from "@/components/emails/send-email-modal";
+import { type EmailTemplate } from "@/components/templates/template-types";
 import { fullName, ROLE_META, type Contact } from "@/components/contacts/roles";
 import { ORG_TYPE_META, type Organization } from "@/components/organizations/org-types";
 import { TaskSection } from "@/components/tasks/task-section";
@@ -39,12 +41,22 @@ type Props = {
   linkedOrgs: Organization[];
   allOrgs: Organization[];
   tasks: Task[];
+  templates: EmailTemplate[];
+  artistName: string;
 };
 
-export function ContactDetail({ contact, linkedOrgs, allOrgs, tasks }: Props) {
+export function ContactDetail({
+  contact,
+  linkedOrgs,
+  allOrgs,
+  tasks,
+  templates,
+  artistName,
+}: Props) {
   const router = useRouter();
 
   const [editOpen, setEditOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
@@ -103,6 +115,9 @@ export function ContactDetail({ contact, linkedOrgs, allOrgs, tasks }: Props) {
           )}
         </Group>
         <Group>
+          {contact.email && (
+            <Button onClick={() => setEmailOpen(true)}>Envoyer un email</Button>
+          )}
           <Button variant="default" onClick={() => setEditOpen(true)}>
             Modifier
           </Button>
@@ -237,7 +252,7 @@ export function ContactDetail({ contact, linkedOrgs, allOrgs, tasks }: Props) {
       {/* Sections à venir */}
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <SoonCard title="Opportunités" step="étape 3.x" />
-        <SoonCard title="Historique emails" step="étape 5.x" />
+        <SoonCard title="Historique emails" step="étape 5.4" />
       </SimpleGrid>
 
       {editOpen && (
@@ -249,6 +264,21 @@ export function ContactDetail({ contact, linkedOrgs, allOrgs, tasks }: Props) {
             router.refresh();
           }}
           contact={contact}
+        />
+      )}
+
+      {emailOpen && contact.email && (
+        <SendEmailModal
+          onClose={() => setEmailOpen(false)}
+          onSent={() => {
+            setEmailOpen(false);
+            router.refresh();
+          }}
+          defaultTo={contact.email}
+          templates={templates}
+          vars={{ contact_name: fullName(contact), artist_name: artistName }}
+          contactId={contact.id}
+          opportunityId={null}
         />
       )}
 
