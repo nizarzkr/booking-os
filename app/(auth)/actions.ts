@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
-export type AuthState = { error: string } | null;
+export type AuthState =
+  | { error: string }
+  | { notice: string } // succès non bloquant (ex : email de confirmation envoyé)
+  | null;
 
 /**
  * Après authentification : rattachement workspace ?
@@ -69,11 +72,22 @@ export async function register(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
     // Message déjà lisible côté Supabase (ex : "User already registered").
     return { error: error.message };
+  }
+
+  // Confirmation email activée (défaut Supabase) → pas de session renvoyée.
+  // On informe l'utilisateur plutôt que de le rediriger silencieusement vers
+  // /login. Couvre aussi le cas « email déjà inscrit » (session nulle,
+  // identities obfusquées) sans divulguer l'existence du compte.
+  if (!data.session) {
+    return {
+      notice:
+        "Compte créé. Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.",
+    };
   }
 
   await redirectAfterAuth();

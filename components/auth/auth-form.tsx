@@ -50,9 +50,15 @@ export function AuthForm({
             {title}
           </Title>
 
-          {state?.error && (
+          {state && "error" in state && (
             <Alert color="red" variant="light" radius="md">
               {state.error}
+            </Alert>
+          )}
+
+          {state && "notice" in state && (
+            <Alert color="green" variant="light" radius="md">
+              {state.notice}
             </Alert>
           )}
 
