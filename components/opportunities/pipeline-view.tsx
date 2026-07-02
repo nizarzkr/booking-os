@@ -24,7 +24,7 @@ import {
   type OpportunityStatus,
 } from "@/components/opportunities/opportunity-types";
 import { type OpportunityListItem } from "@/components/opportunities/opportunities-view";
-import dayjs from "dayjs";
+import { todayISO } from "@/lib/utils/date";
 
 type Props = {
   opportunities: OpportunityListItem[];
@@ -34,7 +34,7 @@ type Props = {
 function isGigOverdue(o: OpportunityListItem): boolean {
   if (!o.gig_date) return false;
   if (o.status === "confirmed" || o.status === "cancelled") return false;
-  return o.gig_date < dayjs().format("YYYY-MM-DD");
+  return o.gig_date < todayISO();
 }
 
 export function PipelineView({ opportunities }: Props) {

@@ -1,8 +1,6 @@
-import dayjs from "dayjs";
-import "dayjs/locale/fr";
-
 import { createClient } from "@/lib/supabase/server";
 import { fullName } from "@/components/contacts/roles";
+import { todayISO, isoInDays, todayLabelFr } from "@/lib/utils/date";
 import {
   DashboardView,
   type ConfirmedItem,
@@ -20,9 +18,9 @@ const ACTIVE_STATUSES = [
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const today = dayjs().format("YYYY-MM-DD");
-  const in30 = dayjs().add(30, "day").format("YYYY-MM-DD");
-  const todayLabel = dayjs().locale("fr").format("dddd D MMMM YYYY");
+  const today = todayISO();
+  const in30 = isoInDays(30);
+  const todayLabel = todayLabelFr();
 
   const [
     { data: relanceRows },

@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/fr";
 
 import type { Database } from "@/types/database.types";
+import { todayISO, isoInDays } from "@/lib/utils/date";
 
 export type Task = Pick<
   Database["public"]["Tables"]["tasks"]["Row"],
@@ -22,7 +23,7 @@ export function dueMeta(
   task: Pick<Task, "due_date" | "done">,
 ): { label: string; color: string } | null {
   if (task.done || !task.due_date) return null;
-  const today = dayjs().format("YYYY-MM-DD");
+  const today = todayISO();
   if (task.due_date < today) return { label: "En retard", color: "red" };
   if (task.due_date === today) return { label: "Aujourd'hui", color: "yellow" };
   return null;
@@ -31,7 +32,7 @@ export function dueMeta(
 /** Une tâche ouverte est-elle en retard (échéance dépassée) ? */
 export function isOverdue(task: Pick<Task, "due_date" | "done">): boolean {
   if (task.done || !task.due_date) return false;
-  return task.due_date < dayjs().format("YYYY-MM-DD");
+  return task.due_date < todayISO();
 }
 
 // Filtres de la vue globale /tasks.
@@ -50,7 +51,7 @@ export function matchesFilter(
   task: Pick<Task, "due_date" | "done">,
   filter: TaskFilter,
 ): boolean {
-  const today = dayjs().format("YYYY-MM-DD");
+  const today = todayISO();
   switch (filter) {
     case "todo":
       return !task.done;
@@ -58,7 +59,7 @@ export function matchesFilter(
       return !task.done && !!task.due_date && task.due_date < today;
     case "week": {
       if (task.done || !task.due_date) return false;
-      const weekEnd = dayjs().add(7, "day").format("YYYY-MM-DD");
+      const weekEnd = isoInDays(7);
       return task.due_date <= weekEnd;
     }
     case "done":
