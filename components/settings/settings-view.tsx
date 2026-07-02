@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Badge,
@@ -19,15 +19,53 @@ import {
   updateWorkspace,
   type WorkspaceInput,
 } from "@/app/(app)/settings/actions";
+import { disconnectGmail } from "@/app/(app)/settings/gmail-actions";
+
+type GmailState = { configured: boolean; email: string | null };
 
 type Props = {
   workspace: { name: string; city: string | null };
   accountEmail: string;
+  gmail: GmailState;
+  gmailFlash: string | null;
 };
 
-export function SettingsView({ workspace, accountEmail }: Props) {
+/** Messages de retour du flow OAuth (query `?gmail=...`). */
+const GMAIL_FLASH: Record<string, { color: string; message: string }> = {
+  connected: { color: "green", message: "Gmail connecté." },
+  denied: { color: "yellow", message: "Connexion Gmail annulée." },
+  norefresh: {
+    color: "red",
+    message:
+      "Google n'a pas renvoyé d'autorisation durable. Révoque l'accès dans ton compte Google puis réessaie.",
+  },
+  notconfigured: {
+    color: "red",
+    message: "Intégration Gmail non configurée côté serveur.",
+  },
+  error: { color: "red", message: "La connexion Gmail a échoué. Réessaie." },
+};
+
+export function SettingsView({
+  workspace,
+  accountEmail,
+  gmail,
+  gmailFlash,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [gmailLoading, setGmailLoading] = useState(false);
+
+  // Notification de retour OAuth, une seule fois.
+  const flashed = useRef(false);
+  useEffect(() => {
+    if (flashed.current || !gmailFlash) return;
+    flashed.current = true;
+    const flash = GMAIL_FLASH[gmailFlash];
+    if (flash) notifications.show(flash);
+    // Nettoie l'URL (retire ?gmail=…).
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [gmailFlash]);
 
   const form = useForm({
     mode: "uncontrolled",
@@ -53,6 +91,19 @@ export function SettingsView({ workspace, accountEmail }: Props) {
     }
     notifications.show({ color: "green", message: "Espace mis à jour." });
   });
+
+  const handleDisconnect = async () => {
+    setGmailLoading(true);
+    const result = await disconnectGmail();
+    setGmailLoading(false);
+    if ("error" in result) {
+      notifications.show({ color: "red", message: result.error });
+      return;
+    }
+    notifications.show({ color: "green", message: "Gmail déconnecté." });
+  };
+
+  const isConnected = gmail.email !== null;
 
   return (
     <Stack gap="xl" maw={640}>
@@ -112,13 +163,13 @@ export function SettingsView({ workspace, accountEmail }: Props) {
         </Stack>
       </Paper>
 
-      {/* Intégrations — placeholder, câblé en 5.2 */}
+      {/* Intégrations — Gmail (étape 5.2) */}
       <Paper p="lg" radius="lg" withBorder>
         <Stack gap="md">
           <Stack gap={2}>
             <Text fw={600}>Intégrations</Text>
             <Text c="dimmed" size="sm">
-              Connecte tes outils pour envoyer et suivre tes emails depuis
+              Connecte ta boîte Gmail pour envoyer et suivre tes emails depuis
               Booking OS.
             </Text>
           </Stack>
@@ -126,14 +177,45 @@ export function SettingsView({ workspace, accountEmail }: Props) {
           <Group justify="space-between">
             <Group gap="sm">
               <Text fw={500}>Gmail</Text>
-              <Badge color="gray" variant="light">
-                Non connecté
-              </Badge>
+              {isConnected ? (
+                <Badge color="green" variant="light">
+                  {gmail.email}
+                </Badge>
+              ) : (
+                <Badge color="gray" variant="light">
+                  Non connecté
+                </Badge>
+              )}
             </Group>
-            <Button variant="default" disabled>
-              Bientôt
-            </Button>
+
+            {isConnected ? (
+              <Button
+                variant="default"
+                color="gray"
+                loading={gmailLoading}
+                onClick={handleDisconnect}
+              >
+                Déconnecter
+              </Button>
+            ) : gmail.configured ? (
+              <Button component="a" href="/api/gmail/connect">
+                Connecter Gmail
+              </Button>
+            ) : (
+              <Button variant="default" disabled>
+                Non configuré
+              </Button>
+            )}
           </Group>
+
+          {!gmail.configured && !isConnected && (
+            <Text c="dimmed" size="xs">
+              Ajoute <code>GOOGLE_CLIENT_ID</code>,{" "}
+              <code>GOOGLE_CLIENT_SECRET</code>, <code>GOOGLE_REDIRECT_URI</code>{" "}
+              et <code>SUPABASE_SERVICE_ROLE_KEY</code> dans{" "}
+              <code>.env.local</code> pour activer la connexion.
+            </Text>
+          )}
         </Stack>
       </Paper>
     </Stack>

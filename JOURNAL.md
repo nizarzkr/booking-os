@@ -6,6 +6,32 @@
 
 ---
 
+## 2026-07-02 — Étape 5.2 : Connexion Gmail (OAuth2) — scaffold
+
+### Contexte
+Choix « scaffolder le code d'abord » : toute la mécanique OAuth est écrite et lit les creds depuis `.env.local`. **Non testable E2E** tant que l'utilisateur n'a pas créé les creds Google + récupéré la `service_role` key (fait à la prochaine session).
+
+### Construit
+- `lib/supabase/admin.ts` — client service_role (`import "server-only"`) pour écrire `gmail_tokens` (table verrouillée service_role, illisible côté authenticated).
+- `lib/gmail/oauth.ts` — URL de consentement (`access_type=offline` + `prompt=consent` → refresh_token garanti), échange code→tokens, lecture adresse Gmail, révocation.
+- Routes `app/api/gmail/connect` (state anti-CSRF en cookie httpOnly posé sur la réponse) + `app/api/gmail/callback` (valide state, échange, stocke le refresh_token — 1 connexion/workspace via delete+insert).
+- `app/(app)/settings/gmail-actions.ts` — déconnexion (révoque chez Google + supprime la ligne).
+- `/settings` : bouton Connecter/Déconnecter + statut (email connecté) + flash de retour OAuth (`?gmail=…`). Bouton masqué/gated si creds absents (`getGoogleOAuthConfig()`), donc invisible et sans risque tant que non configuré.
+- `.env.local.example` : URI de redirection exacte documentée (`/api/gmail/callback`).
+
+### Prérequis manuels (prochaine session)
+- Google Cloud : API Gmail activée, écran de consentement, ID client OAuth (App Web), redirect `http://localhost:3000/api/gmail/callback`, scopes readonly+send.
+- Supabase : `service_role` key.
+- `.env.local` : `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build ✅ (routes `/api/gmail/connect` + `/callback` générées). **E2E : à valider avec creds.**
+
+### État
+- Reprise : **5.3 — Envoi d'email depuis l'app** (scaffold aussi, dépend des tokens 5.2 au runtime).
+
+---
+
 ## 2026-07-02 — Consolidation avant 5.2 : fuseau horaire + page /settings
 
 ### Contexte
