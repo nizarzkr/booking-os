@@ -6,6 +6,32 @@
 
 ---
 
+## 2026-07-02 — Étape 7.1 : Import CSV de contacts
+
+### Contexte
+Dernière grosse brique testable sans credential Google. Permet d'importer une liste existante (Excel/Sheets) au lieu de saisir à la main.
+
+### Construit
+- Dépendance **papaparse** (+ `@types/papaparse`) — parse CSV robuste côté navigateur.
+- `components/contacts/contact-input.ts` — **validation mutualisée** (`EMAIL_RE`, `normalizeContact`, `validateContact`, types `ContactInput`/`NormalizedContact`), extraite de `contacts/actions.ts`. `contacts/actions.ts` refactoré pour la réutiliser (suppression du `CONTACT_ROLES` dupliqué → réutilise celui de `roles.ts`).
+- `app/(app)/settings/import/actions.ts` — `importContacts(rows)` : valide, déduplique (email vs existant + dans le fichier), insert en masse, renvoie `{ inserted, skipped:[{line,reason}] }`. Cap 1000 lignes.
+- `components/contacts/contact-importer.tsx` — flux client : upload (`FileButton`), auto-mapping des colonnes (heuristique sur en-têtes désaccentués), aperçu (table + compteurs sans-nom/email-invalide), import, rapport détaillé.
+- `app/(app)/settings/import/page.tsx` + lien « Importer un CSV » dans `/settings`.
+
+### Décisions
+- Parse client → server action reçoit le tableau mappé (pas d'upload fichier serveur).
+- Pas de contrainte unique DB sur `contacts.email` → dédup applicative, insert en masse sûr.
+- Rôle inconnu → nul (pas d'erreur). Lignes sans email importées. Prénom/nom requis.
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build ✅ (route `/settings/import`).
+- **E2E à faire par l'utilisateur** avec le CSV de test fourni (7 lignes → attendu : 3 importés, 4 ignorés : email invalide, doublon existant `marie@lamaroquinerie.fr`, doublon fichier, prénom manquant).
+
+### État
+- Phase 7.1 complète. Reste code sans creds : Phase 8 (polish). Le reste (5.2/5.3 E2E, 5.4 inbound, Phase 6 Calendar) attend les credentials Google. Findings restants : #5.
+
+---
+
 ## 2026-07-02 — 5.3 (fiche opportunité) + 5.4 (historique emails, affichage)
 
 ### 5.3 — envoi branché sur la fiche opportunité

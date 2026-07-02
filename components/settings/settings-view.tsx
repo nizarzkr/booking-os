@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -148,6 +149,21 @@ export function SettingsView({
             </Group>
           </Stack>
         </form>
+      </Paper>
+
+      {/* Import de contacts */}
+      <Paper p="lg" radius="lg" withBorder>
+        <Group justify="space-between">
+          <Stack gap={2}>
+            <Text fw={600}>Importer des contacts</Text>
+            <Text c="dimmed" size="sm">
+              Ajoute ta liste existante depuis un fichier CSV.
+            </Text>
+          </Stack>
+          <Button component={Link} href="/settings/import" variant="default">
+            Importer un CSV
+          </Button>
+        </Group>
       </Paper>
 
       {/* Compte */}
