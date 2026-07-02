@@ -54,6 +54,13 @@ export default async function ContactDetailPage({
       supabase.from("workspaces").select("name").limit(1).maybeSingle(),
     ]);
 
+  // Historique des emails de ce contact.
+  const { data: emailLogs } = await supabase
+    .from("email_logs")
+    .select("id, subject, body, direction, sent_at, read")
+    .eq("contact_id", id)
+    .order("sent_at", { ascending: false });
+
   return (
     <ContactDetail
       contact={contact as Contact}
@@ -62,6 +69,7 @@ export default async function ContactDetailPage({
       tasks={tasks ?? []}
       templates={templates ?? []}
       artistName={ws?.name ?? ""}
+      emailLogs={emailLogs ?? []}
     />
   );
 }

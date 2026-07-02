@@ -6,6 +6,26 @@
 
 ---
 
+## 2026-07-02 — 5.3 (fiche opportunité) + 5.4 (historique emails, affichage)
+
+### 5.3 — envoi branché sur la fiche opportunité
+- Fiche opportunité : bouton « Envoyer un email » (si le contact lié a un email). Variables résolues depuis l'oppo : `contact_name`, `artist_name`, `venue`, `city`, `gig_date` (formatée), `fee` (formaté). `email` ajouté au select du contact lié.
+- `sendEmail` reçoit `contactId` + `opportunityId` → journalisation liée aux deux.
+
+### 5.4 (partie affichage) — historique des emails sur les fiches
+- Composant partagé `components/emails/email-history.tsx` : liste `email_logs` (badge Envoyé/Reçu, objet, extrait, date fr). État vide géré.
+- Branché sur fiche **contact** et fiche **opportunité** (query `email_logs` triée par `sent_at desc`). Remplace les placeholders « Historique emails ».
+- **Testable dès maintenant** en seedant une ligne `email_logs` (l'affichage ne dépend pas de Gmail ; le remplissage inbound = reste de la 5.4).
+- `SoonCard` retirée de la fiche opportunité (devenue inutilisée).
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build ✅.
+
+### État
+- 5.3 complète (scaffold, E2E envoi dépend de la boîte Gmail). 5.4 : reste la **synchronisation inbound** (polling/watch Gmail → insert email_logs inbound + non-lus au dashboard), qui nécessite une boîte connectée. Findings restants : #5 (leaked password protection).
+
+---
+
 ## 2026-07-02 — Fix #3 (register) + Étape 5.3 : Envoi d'email — scaffold
 
 ### Fix #3 — confirmation email au register (audit)

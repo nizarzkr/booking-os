@@ -38,6 +38,12 @@ import {
 } from "@/components/opportunities/opportunity-types";
 import { TaskSection } from "@/components/tasks/task-section";
 import { type Task } from "@/components/tasks/task-types";
+import { SendEmailModal } from "@/components/emails/send-email-modal";
+import { EmailHistory, type EmailLog } from "@/components/emails/email-history";
+import {
+  type EmailTemplate,
+  type TemplateVars,
+} from "@/components/templates/template-types";
 
 type LinkedRef = { id: string; name: string } | null;
 
@@ -48,6 +54,10 @@ type Props = {
   contactOptions: ContactOption[];
   organizationOptions: OrganizationOption[];
   tasks: Task[];
+  contactEmail: string | null;
+  templates: EmailTemplate[];
+  artistName: string;
+  emailLogs: EmailLog[];
 };
 
 export function OpportunityDetail({
@@ -57,11 +67,29 @@ export function OpportunityDetail({
   contactOptions,
   organizationOptions,
   tasks,
+  contactEmail,
+  templates,
+  artistName,
+  emailLogs,
 }: Props) {
   const router = useRouter();
 
   const [editOpen, setEditOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Variables de template résolues depuis l'opportunité (jetons manquants
+  // laissés tels quels par renderTemplate).
+  const emailVars: Partial<TemplateVars> = {
+    contact_name: contact?.name || undefined,
+    artist_name: artistName || undefined,
+    venue: opportunity.venue || undefined,
+    city: opportunity.city || undefined,
+    gig_date: opportunity.gig_date
+      ? formatGigDate(opportunity.gig_date)
+      : undefined,
+    fee: opportunity.fee != null ? formatFee(opportunity.fee) : undefined,
+  };
   const [isDeleting, startDelete] = useTransition();
   const [isStatusPending, startStatus] = useTransition();
 
@@ -115,6 +143,9 @@ export function OpportunityDetail({
           </Badge>
         </Group>
         <Group>
+          {contactEmail && (
+            <Button onClick={() => setEmailOpen(true)}>Envoyer un email</Button>
+          )}
           <Button variant="default" onClick={() => setEditOpen(true)}>
             Modifier
           </Button>
@@ -204,8 +235,7 @@ export function OpportunityDetail({
       {/* Tâches liées à cette opportunité */}
       <TaskSection tasks={tasks} presetOpportunityId={opportunity.id} />
 
-      {/* À venir */}
-      <SoonCard title="Historique des emails" step="étape 5.x" />
+      <EmailHistory logs={emailLogs} />
 
       {editOpen && (
         <OpportunityFormModal
@@ -218,6 +248,21 @@ export function OpportunityDetail({
           opportunity={opportunity}
           contactOptions={contactOptions}
           organizationOptions={organizationOptions}
+        />
+      )}
+
+      {emailOpen && contactEmail && (
+        <SendEmailModal
+          onClose={() => setEmailOpen(false)}
+          onSent={() => {
+            setEmailOpen(false);
+            router.refresh();
+          }}
+          defaultTo={contactEmail}
+          templates={templates}
+          vars={emailVars}
+          contactId={opportunity.contact_id}
+          opportunityId={opportunity.id}
         />
       )}
 
@@ -284,20 +329,5 @@ function Dash() {
     <Text c="dimmed" size="sm">
       —
     </Text>
-  );
-}
-
-function SoonCard({ title, step }: { title: string; step: string }) {
-  return (
-    <Card withBorder padding="lg">
-      <Stack gap={4}>
-        <Text fw={700} size="sm">
-          {title}
-        </Text>
-        <Text c="dimmed" size="xs">
-          À venir — {step}
-        </Text>
-      </Stack>
-    </Card>
   );
 }

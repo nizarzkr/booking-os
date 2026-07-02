@@ -26,6 +26,7 @@ import {
 } from "@/app/(app)/contacts/[id]/actions";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
 import { SendEmailModal } from "@/components/emails/send-email-modal";
+import { EmailHistory, type EmailLog } from "@/components/emails/email-history";
 import { type EmailTemplate } from "@/components/templates/template-types";
 import { fullName, ROLE_META, type Contact } from "@/components/contacts/roles";
 import { ORG_TYPE_META, type Organization } from "@/components/organizations/org-types";
@@ -43,6 +44,7 @@ type Props = {
   tasks: Task[];
   templates: EmailTemplate[];
   artistName: string;
+  emailLogs: EmailLog[];
 };
 
 export function ContactDetail({
@@ -52,6 +54,7 @@ export function ContactDetail({
   tasks,
   templates,
   artistName,
+  emailLogs,
 }: Props) {
   const router = useRouter();
 
@@ -249,10 +252,11 @@ export function ContactDetail({
       {/* Tâches liées à ce contact */}
       <TaskSection tasks={tasks} presetContactId={contact.id} />
 
+      <EmailHistory logs={emailLogs} />
+
       {/* Sections à venir */}
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <SoonCard title="Opportunités" step="étape 3.x" />
-        <SoonCard title="Historique emails" step="étape 5.4" />
       </SimpleGrid>
 
       {editOpen && (
