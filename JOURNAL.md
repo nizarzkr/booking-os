@@ -6,6 +6,29 @@
 
 ---
 
+## 2026-07-02 — Étape 8.2 : Polish UX — fichiers spéciaux Next
+
+### Contexte
+Audit polish : les états vides existaient déjà sur toutes les vues liste (pipeline gère le vide par colonne), mais **aucun fichier spécial Next** (loading / error / not-found) → navigations sans feedback, erreurs prod moches, 404 par défaut.
+
+### Construit
+- `app/(app)/loading.tsx` — squelette générique (Mantine `Skeleton`) affiché pendant la navigation serveur.
+- `app/(app)/error.tsx` — frontière d'erreur (client, `reset()` + `console.error`), UI de récupération (Réessayer / Dashboard).
+- `app/(app)/not-found.tsx` — 404 dans le shell (déclenché par les `notFound()` des fiches).
+- `app/not-found.tsx` — 404 racine (URLs top-level non matchées).
+
+### Piège rencontré
+- Build KO au prérendu de `/_not-found` : un Server Component qui passe `component={Link}` (fonction) à un Button Mantine (client) casse la sérialisation RSC. Fix : lien natif `component="a" href` sur les pages 404 (navigation pleine page, sans souci de frontière). `error.tsx` garde `component={Link}` car il est `"use client"`.
+- typecheck/lint ne voyaient rien → **le build a attrapé le bug**.
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build ✅ (`/_not-found` statique). Testable : naviguer vers `/contacts/<id-inexistant>` (404 dans le shell) ou une URL inconnue (404 racine).
+
+### État
+- Reste Phase 8.2 (subjectif, plus tard) : transitions/animations, revue responsive fine. Le reste dépend des creds Google (5.2/5.3 E2E, 5.4 inbound, Phase 6) ou est manuel (#5, 8.1 tests, 8.3 Stripe).
+
+---
+
 ## 2026-07-02 — Étape 7.1 : Import CSV de contacts
 
 ### Contexte
