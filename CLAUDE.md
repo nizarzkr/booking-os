@@ -120,6 +120,12 @@ gmail_tokens (
   access_token, refresh_token,
   email, expires_at
 )
+
+email_templates (
+  id, workspace_id,
+  name, subject, body,
+  created_at, updated_at
+)
 ```
 
 **RLS activée sur toutes les tables.** Chaque requête doit filtrer par `workspace_id`. Ne jamais exposer des données cross-workspace.
@@ -179,14 +185,14 @@ NEXT_PUBLIC_APP_URL=
 
 ## Design system
 
-**Fichier de référence :** `DESIGN_SYSTEM.md` ✅
+**Fichiers de référence :** `DESIGN_SYSTEM.md` (appliqué) + `DESIGN BOOKING OS/` (tokens bruts + référence complète). ✅
 
-Principes clés :
-- Dense mais pas surchargé — l'info utile avant tout
-- Inspiré Linear / Raycast, pas Salesforce
-- Mobile-first — les musiciens gèrent ça depuis leur téléphone
-- États vides toujours avec un call-to-action clair
-- Indicateurs visuels pour les urgences (tâches en retard, dates passées)
+DA « **Hatch** » adaptée product-UI (voir DESIGN_SYSTEM.md) :
+- **Light mode** : canvas crème `#f5f4f0`, surfaces blanches, bordures noires 1px, **aucune ombre**.
+- **Mint `#99ffcc` = seule couleur d'action** ; sky/peach/pink = décoratif uniquement.
+- Titres **DM Serif Display**, corps **Inter** (substituts libres de Recoleta/Lota Grotesque).
+- Boutons pill, cards arrondies (16px), respiration généreuse mais densité raisonnable pour l'app.
+- États vides toujours avec un call-to-action clair ; décor (swash, confettis) parcimonieux.
 
 ---
 
@@ -194,24 +200,26 @@ Principes clés :
 
 > Mettre à jour cette section après chaque étape complétée.
 
+**🔖 Reprise (au 2026-07-01) :** Blocs 0, 1, 2 terminés et **vérifiés E2E**. **Opportunités (3.1/3.2/3.4)** + **Tâches (4.1/4.3)** construites — checks statiques verts, DB/RLS vérifiées via MCP ; **E2E navigateur guidé restant à jouer** sur oppos + tâches. **Blocs 3 et 4 complets** + **5.1 Templates email** livrés. **Toute la nav est fonctionnelle.** **Refonte DA complète (2026-07-02) : passage à la DA « Studio » — dark-first minimal, accent violet, typo Geist (Sans + Mono pour les nombres).** L'ancienne DA « Hatch » (crème/pastel/serif/sticker) est retirée. Voir `DESIGN_SYSTEM.md` (réécrit). Base = seed (avec 1 template) + quelques données de test. **Prochaine étape : 5.2 — Connexion Gmail (OAuth2)** — nécessite les creds Google + `SUPABASE_SERVICE_ROLE_KEY`. Rappel : livrer la fiche `/[id]` d'emblée pour toute nouvelle entité-profil (cf. mémoires ; les tâches en sont exemptées).
+
 | Étape | Statut | Notes |
 |-------|--------|-------|
 | 0.1 — Setup repo | ✅ Fait | Next 16 + React 19 + Tailwind v4 + Mantine v8. Build/typecheck/lint OK. Sentry reporté. |
 | 0.2 — Setup Supabase | ✅ Fait | Projet cloud `mybooking` (ref `vsbcvqeewmqntvgrphcw`). 11 tables + RLS, helpers en schéma `private`, seed + types TS. Advisors clean. |
-| 1.1 — Auth | ⬜ À faire | |
-| 1.2 — Onboarding | ⬜ À faire | |
-| 2.1 — Liste contacts | ⬜ À faire | |
-| 2.2 — CRUD contacts | ⬜ À faire | |
-| 2.3 — Organisations | ⬜ À faire | |
-| 2.4 — Fiche contact | ⬜ À faire | |
-| 3.1 — Liste opportunités | ⬜ À faire | |
-| 3.2 — CRUD opportunités | ⬜ À faire | |
-| 3.3 — Vue pipeline | ⬜ À faire | |
-| 3.4 — Fiche opportunité | ⬜ À faire | |
-| 4.1 — Tâches | ⬜ À faire | |
-| 4.2 — Dashboard today | ⬜ À faire | |
-| 4.3 — Vue tâches | ⬜ À faire | |
-| 5.1 — Templates email | ⬜ À faire | |
+| 1.1 — Auth | ✅ Fait | Email + mot de passe (Supabase Auth). `proxy.ts` (Next 16, ex-middleware) protège `/(app)` + refresh session. Server Actions login/register/logout. Redirection post-login selon `workspace_id`. Route `/auth/confirm` prête. Confirmation email désactivée côté projet (session immédiate à l'inscription). |
+| 1.2 — Onboarding | ✅ Fait | Formulaire minimal (nom d'artiste requis + ville). Server action `completeOnboarding` : crée workspace → pose `users.workspace_id` → crée `artist_profiles` (ordre imposé par la RLS, client authentifié, pas de service_role). Gardes : `/onboarding` et `/dashboard` redirigent selon `workspace_id`. Vérifié E2E (register→onboarding→dashboard). Type d'utilisateur (solo/groupe/manager…) reporté (pas de colonne DB). |
+| 2.1 — Liste contacts | ✅ Fait | Shell app (Mantine AppShell : sidebar Dashboard/Contacts + features « bientôt », nom workspace, logout). Onboarding sorti du groupe (app) → groupe (onboarding) pour éviter la boucle de garde. Page `/contacts` (RLS-scoped) + table (recherche nom/email, filtre rôle, badges, empty state). Création = 2.2. Vérifié E2E (liste + recherche). |
+| 2.2 — CRUD contacts | ✅ Fait | Server actions create/update/delete (`app/(app)/contacts/actions.ts`, validation + normalisation + revalidatePath). Modal formulaire (@mantine/form, create/edit via remount par `key`), menu de ligne Modifier/Supprimer, modal de confirmation (custom, pas de window.confirm). Boutons en submit de formulaire (accessible + robuste). Vérifié E2E (create/update/delete via liste ET fiche OK avec vrais clics). |
+| 2.3 — Organisations | ✅ Fait | CRUD organisations en miroir des contacts. **+ Fiche organisation `/organizations/[id]`** ajoutée après retour utilisateur (nom cliquable, boutons Modifier/Supprimer, contacts liés en lecture). Vérifié E2E (create/update/delete via fiche OK). |
+| 2.4 — Fiche contact | ✅ Fait | Page `/contacts/[id]` (params async Next 16, notFound si absent). Composant détail : coordonnées, édition (ContactFormModal réutilisé), suppression + redirect, **gestion des organisations liées** (link/unlink via `contact_organizations`, sélecteur searchable des orgs non liées). Sections placeholder Opportunités/Tâches/Emails. Nom cliquable depuis la liste. Vérifié E2E (fiche, lien/délien org, edit/delete OK). |
+| 3.1 — Liste opportunités | ✅ Fait | Page `/opportunities` (RLS-scopée, jointures contact/orga, tri gig_date). Table (titre cliquable, badge statut, lieu, date, cachet) + recherche + filtre statut. Checks statiques + DB/RLS OK ; E2E nav à jouer. |
+| 3.2 — CRUD opportunités | ✅ Fait | Server actions create/update/delete (`opportunities/actions.ts`). Modal formulaire (@mantine/form, DateInput v8 string, NumberInput cachet, selects contact/orga). Suppression en submit. |
+| 3.3 — Vue pipeline | ✅ Fait | `/pipeline` : colonnes par statut (`STATUS_ORDER`), cartes (titre/contact/date/cachet + badge « Dépassé »), déplacement par flèches ◀ ▶ (action `setOpportunityStatus`). Pas de drag & drop (choix : robustesse + zéro dépendance). Nav « Pipeline » activée. Checks + DB OK ; E2E nav à jouer. |
+| 3.4 — Fiche opportunité | ✅ Fait | Page `/opportunities/[id]` (params async) + fiche : infos, contact/orga liés cliquables, **changement rapide de statut**, Modifier/Supprimer visibles, placeholders Tâches/Emails. |
+| 4.1 — Tâches | ✅ Fait | Système de tâches : actions create/update/setDone/delete (`tasks/actions.ts`), modal (DateInput, preset+lock des liens depuis une fiche). Section `TaskSection` embarquée dans fiche oppo (`presetOpportunityId`) et fiche contact (`presetContactId`) : liste liée + coche + ajout rapide. Schéma réel sans `notes`. Checks + DB/RLS OK ; E2E nav à jouer. |
+| 4.2 — Dashboard today | ✅ Fait | `/dashboard` server component : compteurs cliquables (contacts / oppos actives / tâches en retard), « À relancer aujourd'hui » (tâches ouvertes échéance ≤ today + lien fiche), « Prochaines dates confirmées » (30j), « Options en cours ». Items cliquables → fiche. Checks + simulation DB OK ; E2E nav à jouer. |
+| 4.3 — Vue tâches | ✅ Fait | Page `/tasks` : liste filtrable (à faire / en retard / cette semaine / terminées / toutes), coche inline, badge d'échéance, lien vers oppo/contact, edit/delete. Nav « Tâches » activée. |
+| 5.1 — Templates email | ✅ Fait | Table `email_templates` (migration + RLS `ws_all` + trigger updated_at + types régénérés). Page `/templates` : CRUD + **aperçu sur données réelles** (variables `{{contact_name}}`/`{{artist_name}}`/`{{venue}}`/`{{gig_date}}`/`{{fee}}`/`{{city}}` résolues via contact + oppo sélectionnés). `renderTemplate()` dans template-types. Nav « Templates » activée (plus de « bientôt »). Template d'exemple seedé. |
 | 5.2 — Connexion Gmail | ⬜ À faire | |
 | 5.3 — Envoi email | ⬜ À faire | |
 | 5.4 — Réception emails | ⬜ À faire | |
@@ -243,6 +251,14 @@ Principes clés :
 | 2026-06-02 | Isolation RLS via `private.current_workspace_id()` (SECURITY DEFINER) | Helpers déplacés du schéma `public` vers `private` pour ne pas être appelables via la Data API (advisors 0028/0029). Policies `TO authenticated` + prédicat d'ownership. |
 | 2026-06-02 | Clé publiable moderne (`sb_publishable_...`) côté front | Best practice Supabase (rotation indépendante) ; variable `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` au lieu de l'ancienne `..._ANON_KEY`. |
 | 2026-06-02 | `gmail_tokens` : RLS sans policy (accès `service_role` uniquement) | Les tokens OAuth ne doivent jamais fuiter au navigateur ; gérés exclusivement côté serveur. |
+| 2026-07-01 | Auth par email + mot de passe (Google OAuth reporté) | Socle simple et fiable pour le MVP ; le login Google s'ajoutera sans casser l'existant. |
+| 2026-07-01 | Fichier `proxy.ts` (export `proxy`) au lieu de `middleware.ts` | Next 16 déprécie la convention `middleware` → renommée `proxy`. Les guides Supabase (qui disent `middleware.ts`) doivent être adaptés. |
+| 2026-07-01 | Redirection post-login pilotée par `users.workspace_id` | `workspace_id` NULL → `/onboarding` (1.2), sinon `/dashboard`. Le proxy ne fait que la garde auth ; le routing workspace est dans les Server Actions / layout app (évite une requête DB par requête proxy). |
+| 2026-07-01 | Produit : synthèse « assistant booking perso » + moteur de séquences | Le PRD (cold-emailing) et la vision d'origine sont fusionnés : socle action-first + séquences avec coupure-sur-réponse et garde-fous anti-spam. |
+| 2026-07-01 | Moteur de séquences via Supabase `pg_cron` + `pgmq` (pas BullMQ+Redis) | BullMQ nécessite un worker persistant hors Vercel (serverless) ; pg_cron/pgmq reste dans Supabase, zéro infra en plus. Délais en jours natifs. |
+| 2026-07-01 | DA « Hatch » claire/pastel adaptée product-UI (remplace le dark Linear/Raycast) | Choix DA de l'utilisateur (`DESIGN BOOKING OS/`). Esprit conservé pour marque/landing, densité calmée pour l'app. Thème Mantine recablé (light, mint primary, autoContrast). |
+| 2026-07-01 | Polices : substituts libres DM Serif Display + Inter | Recoleta/Lota Grotesque sont commerciales ; substituts Google Fonts intégrés via next/font. **Remplacé le 2026-07-02 par Geist.** |
+| 2026-07-02 | **Pivot DA « Hatch » → « Studio »** (dark-first minimal, accent violet unique, Geist) | La DA pastel/sticker était devenue incohérente (« Frankenstein »). Refonte vers un langage sobre type Linear/Vercel, adapté à un outil de travail. Piloté par le thème Mantine (pas de shadcn : migrer coûterait une réécriture totale sans bénéfice). Statuts = seule famille sémantique colorée. |
 
 ---
 

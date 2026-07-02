@@ -66,3 +66,9 @@ insert into public.tasks (workspace_id, opportunity_id, contact_id, title, due_d
 ('22222222-2222-2222-2222-222222222222', '09111111-0000-0000-0000-000000000001', 'c1111111-0000-0000-0000-000000000001', 'Relancer Marie sur le cachet', current_date, false),
 ('22222222-2222-2222-2222-222222222222', '09111111-0000-0000-0000-000000000002', 'c1111111-0000-0000-0000-000000000002', 'Confirmer l''option avant deadline', current_date + 7, false),
 ('22222222-2222-2222-2222-222222222222', '09111111-0000-0000-0000-000000000003', 'c1111111-0000-0000-0000-000000000003', 'Envoyer le dossier de presse à Sarah', current_date - 2, false);
+
+insert into public.email_templates (workspace_id, name, subject, body) values
+('22222222-2222-2222-2222-222222222222',
+ 'Prise de contact — première approche',
+ 'Proposition de date — {{artist_name}}',
+ E'Bonjour {{contact_name}},\n\nJe suis en charge du booking de {{artist_name}} et je serais ravi d''envisager une date à {{venue}} ({{city}}).\n\nAuriez-vous des disponibilités autour du {{gig_date}} ? Le cachet envisagé serait de {{fee}}.\n\nBien à vous,\n{{artist_name}}');
