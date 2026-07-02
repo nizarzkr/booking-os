@@ -6,6 +6,427 @@
 
 ---
 
+## 2026-07-02 — Audit qualité + sécurisation du travail (commit Phases 1→5.1)
+
+### Contexte
+Tout le travail des Phases 1→5.1 était **non commité** (working tree) et le repo n'avait que 3 commits (Phase 0). Audit qualité du code non commité demandé avant de sécuriser.
+
+### Audit — bilan
+Socle sain : typecheck ✅, RLS active sur les 12 tables, clients Supabase aux best practices (`getUser()` dans le proxy, cookies async), validation/normalisation partagées par module d'actions, pattern « nom cliquable → fiche `/[id]` avec Modifier/Supprimer » respecté partout.
+
+Findings (par gravité) :
+1. **Dérive de migration `email_templates`** (corrigé, cf. ci-dessous).
+2. **Fuseau horaire dashboard** — `dashboard/page.tsx` calcule `today` via `dayjs()` côté serveur (UTC sur Vercel) → « à relancer aujourd'hui »/« en retard » décalés d'un jour près de minuit en France. **Non corrigé.**
+3. **Register : confirmation email non gérée** — si confirmation ON, `signUp` sans session → redirect silencieux vers `/login`, pas de message « vérifie ta boîte ». **Non corrigé.**
+4. **Faux `{ ok:true }` sur update/delete inter-workspace** — filtre `.eq("id", id)` seul, s'appuie sur la RLS ; si 0 ligne touchée, `error` null → succès sur no-op. **Non corrigé.**
+5. **Protection mots de passe compromis désactivée** (advisor Supabase WARN, HaveIBeenPwned). **Non corrigé.**
+
+### Fix #1 — dérive de migration `email_templates`
+Table présente sur la DB distante (migration `20260701164213_create_email_templates`) + dans les types + le seed, mais **fichier de migration absent** en local (2/3) et table non documentée dans CLAUDE.md → un rebuild from scratch aurait cassé la feature Templates.
+- Fichier `supabase/migrations/20260701164213_create_email_templates.sql` **recréé à l'identique** depuis le SQL distant (`supabase_migrations.schema_migrations`) : table + RLS `ws_all` + trigger `updated_at` + index.
+- Table ajoutée au schéma dans `CLAUDE.md`.
+- DB distante **non touchée** (migration déjà enregistrée) — pure remise en cohérence du repo.
+
+### Vérifications
+- Migrations locales alignées sur le distant (3/3). typecheck ✅.
+
+### État
+- Travail des Phases 1→5.1 sécurisé par commits (par phase). Findings #2→#5 restent à traiter. Reprise code produit : **5.2 — Connexion Gmail (OAuth2)**.
+
+---
+
+## 2026-07-02 — Refonte DA complète : passage « Hatch » → « Studio » (dark minimal)
+
+### Contexte
+La DA était devenue « Frankenstein » (Hatch pastel + sticker néo-brutaliste + besoin d'app dense = 3 langages). Audit + refonte guidés par l'utilisateur. **Correction de stack** : le prompt fourni supposait Tailwind+shadcn ; on est en **Mantine v8 + Tailwind v4** → design system piloté par le thème Mantine, on reste sur Mantine.
+
+### Décisions validées (via AskUserQuestion)
+- **Direction** : dark-first minimal (Linear/Raycast).
+- **Accent** : violet électrique (unique couleur d'action).
+- **Typo** : Geist (Sans partout + Mono pour les nombres).
+- **Statuts** = seule famille sémantique colorée ; **rôles + types d'orga passent en neutre (gris)**.
+
+### Étape 1 — Fondations
+- Dépendance `geist` ajoutée. `app/layout.tsx` : Geist Sans+Mono, `defaultColorScheme="dark"`.
+- `lib/theme.ts` réécrit : tuple `dark` custom (texte 0 → canvas 7), `violet` custom, `primaryColor:"violet"`, `primaryShade {dark:4}`, `autoContrast`+`luminanceThreshold`, radius (sm6/md8/lg12), headings Geist 600. **Suppression du look sticker.**
+- `app/globals.css` purgé (retrait sticker/anchor/badge/marqueur mint + vars crème) → minimal.
+
+### Étape 2 — Shell
+- `app-nav.tsx` : sidebar+header en surface `dark.6`, item actif violet subtil (variant light), header discret, espacements normalisés.
+
+### Étape 3 — Composants
+- Remap couleurs : `STATUS_META` (gray/blue/yellow/violet/green/red), `ROLE_META` + `ORG_TYPE_META` → gray, `dueMeta` (retard=red, aujourd'hui=yellow). Landing + badges divers repassés en violet/red.
+- **Retrait de tous les `radius="xl"` (pilules)** sur les badges → radius net par défaut.
+- Couleurs pastel (mint/sky/peach) **retirées du thème** ; plus aucune référence.
+
+### Étape 4 — Nombres en Geist Mono
+- Compteurs du dashboard + cachets (dashboard, liste oppos, pipeline, fiche oppo) en `ff="monospace"`.
+
+### Étape 5 — Doc
+- `DESIGN_SYSTEM.md` entièrement réécrit (DA Studio). Commentaires obsolètes (« mint ») corrigés.
+- Tailwind v4 : conservé mais inerte (retrait possible plus tard, non bloquant).
+
+### Piège color scheme (important)
+- Symptôme utilisateur : l'app rendait encore **crème + vert menthe** (ancienne DA) après la refonte. Cause : une **préférence `mantine-color-scheme` mémorisée en localStorage sur "light"** (l'app a tourné en `defaultColorScheme="light"` au début) **écrase** `defaultColorScheme="dark"` → rendu clair + CSS caché = illisible.
+- **Fix** : `forceColorScheme="dark"` sur `ColorSchemeScript` **et** `MantineProvider` (app dark-only) → déterministe, ignore le localStorage. Nécessite un **hard reload** (Cmd+Shift+R) pour vider le CSS en cache.
+
+### Vérifications
+- typecheck / lint / **build production tous verts** à chaque étape.
+- **Revue visuelle en vrai (dark) à faire par l'utilisateur** — écran par écran.
+
+### État
+- Toutes les fonctionnalités (blocs 0→4 + 5.1) sont désormais sous la DA Studio. Reprise code produit : **5.2 — Connexion Gmail (OAuth2)** (nécessite creds Google + service_role key).
+
+## 2026-07-01 — Étape 5.1 : Templates d'email (variables + aperçu)
+
+### Étapes complétées
+- [x] 5.1 — Templates d'email avec variables dynamiques + prévisualisation
+
+### Changements au schéma DB (via MCP)
+- **Nouvelle table `email_templates`** (`id, workspace_id, name, subject, body, created_at, updated_at`). Migration `create_email_templates`.
+- RLS : policy `ws_all` (ALL, authenticated, `workspace_id = private.current_workspace_id()`, USING+WITH CHECK) — miroir des autres tables.
+- Trigger `email_templates_set_updated_at` (réutilise `public.set_updated_at()`), index sur `workspace_id`.
+- Types régénérés (`types/database.types.ts`) via MCP `generate_typescript_types`.
+- Advisors sécurité : clean (seuls les 2 lints pré-existants — `gmail_tokens` volontaire + option auth « leaked password »).
+
+### Ce qui a été construit
+- `components/templates/template-types.ts` : type `EmailTemplate`, `TEMPLATE_VARIABLES` (6 variables), `renderTemplate(text, vars)` (remplace `{{var}}` ; jeton sans valeur laissé tel quel).
+- `app/(app)/templates/actions.ts` : create/update/delete (normalize/validate nom requis, revalidate).
+- `components/templates/template-form-modal.tsx` : nom / objet / corps (Textarea autosize) + rappel visuel des variables disponibles (badges).
+- `components/templates/template-preview-modal.tsx` : **aperçu sur données réelles** — sélecteurs contact + opportunité → variables résolues (`contact_name`, `artist_name` = nom du workspace, `venue`/`gig_date`/`fee`/`city` depuis l'oppo) → objet + corps rendus.
+- `components/templates/templates-view.tsx` + `app/(app)/templates/page.tsx` : liste (nom + objet), actions Aperçu / Modifier / Supprimer, empty state. Page fetch templates + contacts + opportunités + nom d'artiste.
+- `components/layout/app-nav.tsx` : « Templates » activé — **plus aucune entrée « bientôt »** (toutes les features de nav sont livrées).
+
+### Seed
+- Un template d'exemple (« Prise de contact ») ajouté en base **et** dans `supabase/seed.sql` (avec les 6 variables) pour tester l'aperçu immédiatement.
+
+### Variables & source des données
+- `{{contact_name}}` (contact sélectionné), `{{artist_name}}` (= `workspaces.name`, posé à l'onboarding), `{{venue}}` `{{gig_date}}` `{{fee}}` `{{city}}` (opportunité sélectionnée).
+
+### Vérifications
+- typecheck / lint / build **verts** ; route `/templates` générée.
+- Migration appliquée + advisors clean + insert de test OK.
+- **E2E navigateur à jouer** : créer/éditer un template, ouvrir l'aperçu et changer le contact/oppo pour voir les variables se résoudre, supprimer.
+
+### État
+- **Toute la navigation est désormais fonctionnelle.** Prochaine étape : **5.2 — Connexion Gmail (OAuth2)**, puis 5.3 envoi (avec sélection de template) et 5.4 réception. Nécessitera les creds Google (`GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI`) et la `SUPABASE_SERVICE_ROLE_KEY` (table `gmail_tokens` en service_role).
+
+## 2026-07-01 — Étape 3.3 : Vue Pipeline (Kanban)
+
+### Étapes complétées
+- [x] 3.3 — Vue Pipeline (colonnes par statut + déplacement des cartes)
+
+### Décision : boutons de déplacement plutôt que drag & drop
+- La roadmap autorise « drag & drop **ou** boutons de changement de statut ». Choisi **colonnes + flèches ◀ ▶** sur chaque carte : robuste, testable, accessible clavier, **zéro nouvelle dépendance** (pas de @dnd-kit). Cohérent avec les mémoires (le DnD en portail + l'automation navigateur sont peu fiables). Le vrai glisser-déposer pourra s'ajouter plus tard.
+
+### Ce qui a été construit
+- `app/(app)/opportunities/actions.ts` : action légère `setOpportunityStatus(id, status)` (validation enum ; revalidate `/pipeline` + `/opportunities` + fiche + `/dashboard`).
+- `components/opportunities/pipeline-view.tsx` (client) : une colonne par statut (`STATUS_ORDER`), en-tête = badge statut + compteur, scroll horizontal. Cartes : titre (lien fiche), contact/orga, date de gig (+ badge « Dépassé » si gig passé sur oppo ouverte), cachet. Flèches ◀ ▶ pour avancer/reculer d'un statut (désactivées aux extrémités) → `setOpportunityStatus` + `router.refresh()`.
+- `app/(app)/pipeline/page.tsx` (server) : fetch RLS-scopé (jointures contact/orga), map vers `OpportunityListItem` (réutilise le type de la liste).
+- `components/layout/app-nav.tsx` : « Pipeline » activé (placé en 2e, juste après Dashboard). Reste « Templates » en bientôt.
+
+### Vérifications
+- typecheck / lint / build **verts** ; route `/pipeline` générée.
+- DB via MCP : répartition des statuts = prospect 2 / negotiation 1 / option 2 (colonnes remplies pour tester le déplacement).
+- **E2E navigateur à jouer** : ouvrir /pipeline, déplacer une carte ◀ ▶ entre colonnes, vérifier le report en base + sur la fiche/dashboard.
+
+### État
+- Bloc 3 complet (3.1→3.4). Prochaine étape du chemin critique : **5.1 — Templates email**, puis Gmail (5.2–5.4).
+
+## 2026-07-01 — Étape 4.2 : Dashboard « Aujourd'hui »
+
+### Étapes complétées
+- [x] 4.2 — Dashboard « Aujourd'hui » (écran d'accueil action-first)
+
+### Ce qui a été construit
+- `app/(app)/dashboard/page.tsx` réécrit en **server component** (fetch RLS-scopé, `Promise.all`) :
+  - **Compteurs** cliquables : Contacts, Opportunités actives (`status in prospect/contacted/negotiation/option`), Tâches en retard (alerte pink si > 0).
+  - **À relancer aujourd'hui** : tâches ouvertes dont l'échéance ≤ aujourd'hui, avec badge (« En retard »/« Aujourd'hui ») + lien vers l'oppo/contact associé.
+  - **Prochaines dates confirmées** : opportunités `confirmed` avec `gig_date` dans les 30 prochains jours (cachet + date).
+  - **Options en cours** : opportunités `option` (date limite = gig_date).
+  - Chaque item est cliquable → fiche. États vides on-brand (« Rien à relancer 🎉 »).
+- Réutilise les helpers existants (`formatFee`/`formatGigDate`/`STATUS_META`, `dueMeta`/`formatDueDate`, `fullName`) — zéro duplication.
+
+### Décisions / points techniques
+- Comptage via `select("*", { count: "exact", head: true })` (pas de transfert de lignes).
+- Filtre statut : `.in("status", [...ACTIVE_STATUSES])` (spread pour passer d'un tuple `as const` readonly à un array mutable attendu par le client typé).
+- Dashboard reste sur `/dashboard` (routing post-login inchangé), pas sur `/`.
+
+### Bug RSC attrapé au runtime (pas au build)
+- 1re version : dashboard en **server component** rendant directement `Anchor`/`Card` avec `component={Link}` → erreur runtime React 19/Next 16 « Functions cannot be passed directly to Client Components ». **Le build passait au vert**, l'erreur n'apparaissait qu'à l'ouverture de /dashboard (repérée dans le log du serveur dev). Illustration de la mémoire « vérifier en vrai, pas juste build ».
+- **Fix** : scission `page.tsx` (server, fetch + mapping en données sérialisables) → `components/dashboard/dashboard-view.tsx` (`"use client"`, tout le rendu + `component={Link}`). Pattern identique aux autres pages (OpportunitiesView, etc.).
+
+### Vérifications
+- typecheck / lint / build **verts** + **recompilation dev sans erreur runtime** après le fix.
+- DB via MCP (simulation à la date 2026-07-01) : relance = 3, confirmées 30j = 0 (empty state), options = 2, compteurs 4 contacts / 5 oppos actives / 3 en retard. Cohérent.
+- **E2E navigateur à jouer** : ouvrir /dashboard, vérifier les 3 sections + compteurs, cliquer un item → fiche.
+
+### Bloc 4 (cœur action-first) : tâches + dashboard en place
+- Restent optionnels : 3.3 Pipeline Kanban (améliration visuelle). Prochaine étape du chemin critique : **5.1 — Templates email**, puis 5.2–5.4 (Gmail).
+
+## 2026-07-01 — Refonte lisibilité DA (direction « sticker »)
+
+### Contexte
+Retour utilisateur : couleurs peu lisibles, boutons peu visibles. Passe ciblée sur la charte (pas de refonte structurelle).
+
+### Ce qui a changé (câblé en CSS, `app/globals.css` @layer components)
+- **Boutons « sticker »** : contour noir 2px + ombre dure décalée (`3px 3px 0 #000`) + effet d'enfoncement au hover/clic. Variantes `subtle`/`transparent` = boutons texte (hiérarchie préservée). `lib/theme.ts` : retrait du `borderWidth` inline (conflit).
+- **Inputs** : bordure noire nette (hors focus, où Mantine garde le mint).
+- **Liens** (`Anchor`) : avant colorés en primaire (mint → illisible sur blanc). Désormais **texte encre + soulignement mint 2px** (hover → soulignement noir). Corrige les noms de contacts/orgas et titres d'opportunités cliquables.
+- **Badges** (statuts/rôles/types) : fond pastel conservé + **texte encre gras + contour noir 1px** (petit sticker lisible).
+- **Titres `h1`** (pages + noms d'entités) : **marqueur mint** signature Hatch (surlignement bas derrière le texte).
+- `DESIGN_SYSTEM.md` mis à jour (boutons sticker, liens, badges, titres ; règle « zéro ombre » désormais limitée aux cards/surfaces).
+
+### Décision
+- La règle « mint = seule couleur d'action » est conservée, mais le mint pâle (#99ffcc) ne portait pas le contraste seul → on ajoute contour/ombre/soulignement pour la lisibilité, plutôt que de changer la couleur d'action. Direction validée par l'utilisateur (« sticker »).
+
+---
+
+## 2026-07-01 — Étape 4.1 : Système de tâches (+ vue /tasks et intégration fiches)
+
+### Étapes complétées
+- [x] 4.1 — Tâches (CRUD, liaison contact/oppo, ajout rapide depuis les fiches)
+- [x] 4.3 — Vue « Toutes les tâches » (`/tasks`, filtres, marquage rapide) — livrée en même temps (une tâche a besoin d'un endroit où être vue)
+
+### Décision de périmètre
+- Pas de page `/tasks/[id]` : une tâche est un **item d'action léger** (titre, échéance, fait/non-fait, lien), pas une entité-profil → édition via modal, coche inline. La mémoire `entity-detail-pages-expected` vise les entités-profil (contacts/orgas/oppos), pas les tâches.
+- Schéma réel `tasks` **sans colonne `notes`** (la roadmap la mentionnait à tort) → champ omis.
+
+### Ce qui a été construit
+- `components/tasks/task-types.ts` : type `Task`, helpers `formatDueDate`/`isOverdue`/`dueMeta` (badge « En retard »/« Aujourd'hui »), filtres (`todo`/`overdue`/`week`/`done`/`all`) + `matchesFilter`.
+- `app/(app)/tasks/actions.ts` : `createTask`/`updateTask`/`setTaskDone`/`deleteTask` (normalize/validate ; revalidate `/tasks` + `/dashboard` + fiches liées).
+- `components/tasks/task-form-modal.tsx` : create/edit (@mantine/form, DateInput). **Preset + lockLinks** : depuis une fiche, l'oppo/contact est pré-rempli et les sélecteurs masqués.
+- `components/tasks/tasks-view.tsx` + `app/(app)/tasks/page.tsx` : vue globale (filtre, coche inline `setTaskDone`, titre barré si fait, badge d'échéance, lien vers oppo/contact, menu edit/delete).
+- `components/tasks/task-section.tsx` : section « Tâches » embarquée (liste liée + coche + supprimer + ajout rapide pré-lié). Intégrée dans **fiche opportunité** (`presetOpportunityId`) et **fiche contact** (`presetContactId`), en remplacement des placeholders. Pages `[id]` : fetch des tâches liées.
+- `components/layout/app-nav.tsx` : « Tâches » activé (reste « Pipeline », « Templates » en bientôt).
+
+### Vérifications
+- typecheck / lint / build **verts** ; route `/tasks` générée.
+- DB via MCP : requête miroir OK (3 tâches de seed, jointures oppo/contact, tri done→échéance). Policy `ws_all` (ALL, authenticated) confirmée sur `tasks`.
+- **E2E navigateur à jouer** : créer une tâche (globale + depuis une fiche), cocher/décocher, filtres (En retard sur les tâches de seed), éditer, supprimer.
+
+### État en fin de session
+- Prochaine étape : **4.2 — Dashboard « Aujourd'hui »** (à relancer aujourd'hui / prochaines dates confirmées / options en cours + compteurs). Toutes les briques (oppos, statuts, tâches + échéances) sont désormais en place.
+
+## 2026-07-01 — Étapes 3.1 + 3.2 + 3.4 : Opportunités (liste + CRUD + fiche)
+
+### Étapes complétées
+- [x] 3.1 — Liste des opportunités
+- [x] 3.2 — Création / édition / suppression
+- [x] 3.4 — Fiche opportunité détaillée
+- (3.3 Pipeline Kanban : reporté à la prochaine session)
+
+### Décision de périmètre
+- Livrer **liste + CRUD + fiche en un bloc** (au lieu de la seule liste 3.1) pour respecter la mémoire `entity-detail-pages-expected` : toute entité listée doit avoir sa fiche `/[id]` d'emblée (nom cliquable + Modifier/Supprimer visibles). Évite le trou UX vécu sur les organisations.
+
+### Ce qui a été construit (miroir contacts/organisations)
+- `components/opportunities/opportunity-types.ts` : type `Opportunity`, `STATUS_META` (libellés FR + couleurs pastel ; mint réservé à l'action), `STATUS_ORDER`/options select/filtre, helpers `formatFee` (Intl EUR) et `formatGigDate` (dayjs + locale `fr` importée).
+- `app/(app)/opportunities/actions.ts` : `createOpportunity` / `updateOpportunity` / `deleteOpportunity` (normalize : vides→null, `fee` en number|null, `status` validé contre l'enum, `contact_id`/`organization_id` null si vide ; validate : titre requis, fee ≥ 0 ; revalidatePath liste + fiche).
+- `app/(app)/opportunities/page.tsx` + `components/opportunities/opportunities-view.tsx` : liste RLS-scopée (jointures `contacts(...)`/`organizations(...)`, tri gig_date asc nulls last puis created_at desc), toolbar recherche (titre/ville/venue/contact/orga) + filtre statut, table (titre cliquable, badge statut, contact/orga, lieu, date, cachet), menu ⋯, modal de suppression **en submit**.
+- `components/opportunities/opportunity-form-modal.tsx` : create/edit (@mantine/form, remount par `key`), `DateInput` (Mantine v8 = valeurs string "YYYY-MM-DD"), `NumberInput` cachet, selects searchable contact/orga.
+- `app/(app)/opportunities/[id]/page.tsx` (params async) + `components/opportunities/opportunity-detail.tsx` : fiche avec Modifier/Supprimer visibles, **changement rapide de statut** (Select → updateOpportunity + refresh), contact/orga liés en Anchor, placeholders Tâches (4.x) / Emails (5.x).
+- `components/layout/app-nav.tsx` : « Opportunités » passé de `SOON_ITEMS` à `NAV_ITEMS`.
+
+### Points techniques
+- Mantine v8 : `@mantine/dates` travaille désormais en **valeurs string** (pas Date) → aligne directement avec `opportunities.gig_date` (date). CSS `@mantine/dates/styles.layer.css` déjà importé.
+- Changement rapide de statut : reconstruit un `OpportunityInput` complet depuis l'oppo courante (l'update remplace les champs), nulls → "" pour les champs texte.
+
+### Vérifications
+- typecheck / lint / build **verts** ; routes `/opportunities` et `/opportunities/[id]` générées.
+- DB via MCP Supabase : requête miroir de la page OK (3 opportunités de seed, jointures contact/orga, ordre gig_date asc nulls last). Policy `ws_all` (ALL, authenticated, USING+WITH CHECK scopées workspace) confirmée → CRUD autorisé et scopé.
+- **E2E navigateur à jouer** (test manuel guidé) : create → liste → fiche → changement de statut → edit → delete, + recherche/filtre.
+
+### État en fin de session
+- Prochaine étape : **3.3 — Vue Pipeline (Kanban)** (`/pipeline`, colonnes par statut, changement de statut par carte).
+
+## 2026-07-01 — Étape 1.1 : Authentification
+
+### Étapes complétées
+- [x] 1.1 — Auth (email + mot de passe via Supabase Auth)
+
+### Ce qui a été construit
+- `lib/supabase/proxy.ts` (`updateSession`) + `proxy.ts` racine : refresh de session + garde des routes `/(app)`.
+- `app/(auth)/actions.ts` : Server Actions `login` / `register` / `logout` (`useActionState`, React 19).
+- `components/auth/auth-form.tsx` (partagé) + pages `/login` et `/register`.
+- `app/(auth)/auth/confirm/route.ts` : route de confirmation email (prête pour activation future).
+- `app/(app)/layout.tsx` (garde serveur) + placeholders `/dashboard` et `/onboarding`.
+
+### Décisions prises
+- Auth email + mot de passe ; Google OAuth reporté.
+- **Next 16** : `middleware.ts` déprécié → fichier `proxy.ts` (export `proxy`). Piège confirmé dans les docs `node_modules/next/dist/docs`.
+- Routing post-login piloté par `users.workspace_id` (NULL → onboarding, sinon dashboard).
+- Cap produit : synthèse vision + PRD ; séquences via `pg_cron`/`pgmq` (pas BullMQ+Redis).
+
+### Vérifications
+- typecheck + lint + build : OK. Build liste bien `ƒ Proxy (Middleware)`.
+- `GET /dashboard` sans session → 307 vers `/login` ; `/login` → 200.
+- Signup test : utilisateur créé, trigger `handle_new_user` a bien inséré `public.users` (workspace_id NULL, role owner). Utilisateur de test supprimé après vérif.
+
+### Problèmes rencontrés / à traiter
+- **Confirmation email encore ON** côté projet Supabase (signup ne renvoie pas de session). À basculer OFF : Dashboard > Authentication > Providers > Email > désactiver « Confirm email ». Tant que c'est ON, le register renvoie vers `/login` sans session.
+
+### Direction artistique — pivot « Hatch »
+- Nouveau dossier `DESIGN BOOKING OS/` fourni par l'utilisateur (DA claire/pastel « Hatch »). Réorganisé : `reference/DESIGN.md` + `tokens/` (json/css) + `README.md`.
+- Décision : DA **adaptée product-UI** remplace l'ancienne DA sombre. Substituts de polices libres (DM Serif Display + Inter). Appliquée **avant 1.2**.
+- Recablé : `lib/theme.ts` (light, mint primary, autoContrast, radius, aucune ombre), `app/layout.tsx` (fonts + light scheme), `app/globals.css` (canvas crème + vars marque). `DESIGN_SYSTEM.md` réécrit. Placeholders passés en mint/pink.
+- Vérif : typecheck/lint/build OK ; screenshots `/` et `/login` conformes (crème + serif + pill mint).
+
+## 2026-07-01 — Vérification E2E du bloc 2 + fiche organisation
+
+### Contexte
+Session de vérification E2E complète (bloc 2), pilotée manuellement par l'utilisateur (vrais clics) avec vérif DB via MCP Supabase — l'automation navigateur ayant été peu fiable.
+
+### Résultat
+- ✅ Contacts : create / update / delete (via menu ⋯ liste ET via fiche) — vérifiés.
+- ✅ Fiche contact : lien/délien organisation, edit, delete — vérifiés.
+- ✅ Organisations : create / update / delete — vérifiés.
+
+### Correctif suite retour utilisateur
+- **Manque UX signalé** : les organisations n'avaient pas de fiche ni de nom cliquable → l'utilisateur ne trouvait pas comment « développer le profil / modifier / supprimer » (le menu ⋯ existait mais peu évident).
+- **Ajouté** : `app/(app)/organizations/[id]/page.tsx` + `components/organizations/organization-detail.tsx` (infos, Modifier/Supprimer visibles, contacts liés en lecture, placeholders). Nom d'orga rendu cliquable dans la liste.
+- Mémoires créées : `entity-detail-pages-expected`, `verifier-e2e-navigateur-avant-de-valider`.
+
+### Nettoyage
+- Compte de test « Nizar Zekri » supprimé (à la demande de l'utilisateur). Base = seed uniquement (workspace Lou Vega, 3 contacts, 2 orgs).
+
+### Bloc 2 : entièrement vérifié E2E ✅
+Prochaine étape : **3.1 — Liste opportunités** (pipeline de booking). Penser à livrer la fiche `/[id]` d'emblée (cf. mémoire).
+
+---
+
+## 2026-07-01 — Étape 2.4 : Fiche contact (fin du bloc 2)
+
+### Étapes complétées
+- [x] 2.4 — Fiche contact
+
+### Ce qui a été construit
+- `app/(app)/contacts/[id]/page.tsx` : page détail server. **Next 16 : `params` est async** (`await params`). Fetch contact (maybeSingle + notFound), organisations liées (jointure `contact_organizations → organizations(...)`), et toutes les orgs du workspace (sélecteur).
+- `app/(app)/contacts/[id]/actions.ts` : `linkOrganization` / `unlinkOrganization` (insert/delete dans contact_organizations, revalidatePath de la fiche).
+- `components/contacts/contact-detail.tsx` : coordonnées (email mailto, tél, notes), Modifier (réutilise ContactFormModal), Supprimer (confirm en submit → redirect /contacts), **organisations liées** (liste + délier + sélecteur searchable des orgs non liées + Lier). Sections placeholder Opportunités (3.x) / Tâches (4.x) / Emails (5.x). Erreurs via notifications.
+- `contacts-view.tsx` : le nom de chaque contact est désormais un lien vers `/contacts/[id]`.
+
+### Décisions / points techniques
+- Jointure Supabase imbriquée `select("organizations(...)")` : le typage généré la traite comme objet nullable → `.filter((o): o is Organization => o !== null)` pour typer proprement.
+- Boutons de page (link/unlink/delete) en onClick simple (hors portail = OK) ; confirm delete en submit de formulaire.
+
+### Vérifications
+- typecheck/lint/build verts, route `/contacts/[id]` générée.
+- RLS `contact_orgs_all` (ALL, authenticated) confirmée → link/unlink autorisés. Seed sans liens (normal).
+- **E2E navigateur à rejouer** (extension déconnectée cette session).
+
+### Bloc 2 terminé
+Contacts (2.1/2.2), Organisations (2.3), Fiche contact (2.4) : ✅. Reste à rejouer les E2E navigateur (delete contact + CRUD orgs + fiche/liaison) quand l'extension est reconnectée.
+
+### État en fin de session
+- Prochaine étape : **3.1 — Liste opportunités** (début du pipeline de booking).
+
+---
+
+## 2026-07-01 — Étape 2.3 : Organisations
+
+### Étapes complétées
+- [x] 2.3 — Organisations (CRUD)
+
+### Ce qui a été construit (miroir des contacts)
+- `app/(app)/organizations/actions.ts` : create/update/delete (workspace_id, validation name, normalisation, revalidatePath).
+- `components/organizations/org-types.ts` : type Organization, ORG_TYPE_META (salle/festival/agence/label/autre), options select/filtre.
+- `components/organizations/organization-form-modal.tsx` : formulaire (nom, type, ville, pays, site web, notes), remount par `key`.
+- `components/organizations/organizations-view.tsx` : toolbar (recherche nom/ville + filtre type) + table (badge type, lien web cliquable) + menu de ligne + modal de confirmation **en submit dès le départ** (leçon du 2.2).
+- `app/(app)/organizations/page.tsx` (fetch RLS-scoped). Nav « Organisations » ajoutée dans `app-nav.tsx`.
+
+### Vérifications
+- typecheck/lint/build verts, route `/organizations` générée.
+- Requête miroir de la page exécutée en base : OK (2 organisations de seed, colonnes valides).
+- RLS : policy `ws_all` (cmd ALL, authenticated) confirmée sur `organizations` → create/update/delete/select autorisés et scopés.
+- **E2E navigateur non rejoué** : l'extension Claude-in-Chrome s'est déconnectée en cours de session. À refaire au prochain passage (create/edit/delete via l'UI).
+
+### État en fin de session
+- Prochaine étape : **2.4 — Fiche contact** (vue détail : infos, organisation(s) liée(s) via contact_organizations, historique, tâches, notes).
+
+---
+
+## 2026-07-01 — Étape 2.2 : CRUD contacts
+
+### Étapes complétées
+- [x] 2.2 — CRUD contacts (créer / éditer / supprimer)
+
+### Ce qui a été construit
+- `app/(app)/contacts/actions.ts` : `createContact` / `updateContact` / `deleteContact` (récup workspace_id pour l'insert, normalisation vides→null, validation first_name + email, `revalidatePath('/contacts')`).
+- `components/contacts/roles.ts` (meta partagée : libellés/couleurs de rôle, type Contact, fullName).
+- `components/contacts/contact-form-modal.tsx` : formulaire create/edit (@mantine/form) ; remonté via `key` à chaque ouverture → initialValues frais, zéro useEffect (respecte `react-hooks/set-state-in-effect`).
+- `components/contacts/contacts-view.tsx` : remplace contacts-table ; toolbar + bouton Ajouter + table + menu de ligne (Modifier/Supprimer) + modal de confirmation de suppression (custom Mantine, PAS de window.confirm).
+- Bouton « Ajouter » activé (étape 2.1 le laissait désactivé).
+
+### Décisions / points techniques
+- Boutons des modals en **submit de formulaire** (create/edit et confirmation de suppression) : plus accessible (Entrée valide) et robuste.
+- Suppression : modal de confirmation maison pour éviter les dialogs natifs bloquants.
+
+### Vérifications (E2E navigateur + SQL + logs serveur)
+- **Create** : contact créé via modal → liste rafraîchie → confirmé en base + log `createContact`.
+- **Update** : édition (ajout du nom « Bikini ») → liste rafraîchie → confirmé en base (`last_name`) + log `updateContact`.
+- **Delete** : le menu de ligne et le modal de confirmation s'affichent correctement (rendus vérifiés). L'action `deleteContact` + RLS (policy `ws_all` FOR ALL couvre DELETE) sont corrects. Le clic final de confirmation n'a pas pu être joué de façon fiable via l'automation navigateur (flakiness du menu Mantine en portail + extension Chrome qui injecte des scripts) — artefact d'automation, pas un bug applicatif. Bouton de confirmation durci en submit de formulaire pour fiabiliser (comme create/edit qui fonctionnent).
+- typecheck/lint/build verts. Compte de test supprimé (cascade OK, seed intacte).
+
+### À refaire quand l'occasion se présente
+- Rejouer une suppression E2E dans un navigateur propre (sans l'extension qui déclenche le warning d'hydratation) pour cocher définitivement le delete.
+
+### État en fin de session
+- Prochaine étape : **2.3 — Organisations** (salles/festivals/agences/labels, + lien contact ↔ organisation).
+
+---
+
+## 2026-07-01 — Étape 2.1 : Liste des contacts
+
+### Étapes complétées
+- [x] 2.1 — Liste des contacts (+ shell applicatif)
+
+### Ce qui a été construit
+- **Shell app** : `components/layout/app-nav.tsx` (Mantine AppShell — header, sidebar avec nom du workspace, nav Dashboard/Contacts actifs, Pipeline/Opportunités/Tâches/Templates « bientôt », logout). `app/(app)/layout.tsx` gère auth + garde workspace + rend le shell. Dashboard simplifié.
+- **Onboarding déplacé** : `app/(app)/onboarding` → nouveau groupe `app/(onboarding)/` avec son layout (auth seule, sans shell). Évite la boucle : le layout (app) redirige vers /onboarding si pas de workspace.
+- **Contacts** : `app/(app)/contacts/page.tsx` (fetch RLS-scoped) + `components/contacts/contacts-table.tsx` (client : recherche nom/email, filtre par rôle, table Mantine, badges de rôle colorés, empty state). Bouton « Ajouter » désactivé (création = 2.2).
+
+### Problèmes rencontrés / solutions
+- **Server error** sur /contacts : `onClick` passé à un Button depuis un Server Component (« Event handlers cannot be passed to Client Component props »). Fix : bouton `disabled` sans handler (retrait du Tooltip).
+- **Cache `.next/types` obsolète** après déplacement d'onboarding → erreur typecheck sur l'ancien chemin. Résolu par un `build` qui régénère les types.
+- **Warning « 1 Issue » (hydratation)** : PAS notre code — une extension Chrome (`lgblnfidahcdcjddiepkckcfdhpknnjh/popups-script.js`) injecte un `src` dans le `<script>` Mantine avant hydratation. Dev-only, propre au navigateur de l'utilisateur, absent en prod. Confirmé via read_console_messages.
+
+### Vérifications (E2E navigateur + SQL)
+- register → onboarding → dashboard (shell OK, workspace « The Midnight Echoes »).
+- /contacts vide → empty state ; 5 contacts insérés via SQL → table triée, badges rôle, `—` pour nulls, compteur ; recherche « printemps » → 1/5. RLS scope OK. Compte de test supprimé (cascade OK, seed intacte).
+- typecheck/lint/build verts.
+
+### État en fin de session
+- Prochaine étape : **2.2 — CRUD contacts** (créer / éditer / supprimer, activer le bouton « Ajouter », + import CSV plus tard en 7.1).
+
+---
+
+## 2026-07-01 — Étape 1.2 : Onboarding
+
+### Étapes complétées
+- [x] 1.2 — Onboarding (création workspace + profil artiste)
+
+### Ce qui a été construit
+- `app/(app)/onboarding/actions.ts` (`completeOnboarding`) : workspace → `users.workspace_id` → `artist_profiles`, dans cet ordre imposé par la RLS. Client authentifié uniquement (pas de service_role — la clé est d'ailleurs vide).
+- `components/onboarding/onboarding-form.tsx` + page `/onboarding` réelle (nom d'artiste requis, ville optionnelle), on-brand Hatch.
+- Gardes de redirection : `/onboarding` → dashboard si déjà onboardé ; `/dashboard` → onboarding si `workspace_id` null. Dashboard affiche le nom du workspace.
+
+### Décisions prises
+- Onboarding **minimal** (nom + ville) conforme au principe « profil progressif » (Risque 3 de la vision : éviter trop de champs). Le **type d'utilisateur** (solo/groupe/manager/booker/label) est reporté : pas de colonne DB, nécessiterait une migration.
+- Confirmation email désactivée par l'utilisateur → signup renvoie une session, flux fluide.
+
+### Vérifications (E2E navigateur + SQL)
+- register → session immédiate → `/onboarding` → formulaire → `/dashboard` affichant « ESPACE : Nizar Demo Band ».
+- SQL : workspace créé (name+city), `owner_id` = user, `users.workspace_id` posé, `artist_profiles` créé (prouve l'ordre RLS). Compte de test supprimé (cascade OK, seed « Lou Vega » intacte).
+
+### État en fin de session
+- Prochaine étape : **2.1 — Liste contacts** (première vraie feature métier scopée par workspace).
+
+---
+
+## 2026-07-01 — Étape 1.1 : Authentification
+
+---
+
 ## 2026-06-02 — Session fondatrice (avec Claude / Cowork)
 
 ### Décisions prises
