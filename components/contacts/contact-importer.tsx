@@ -173,9 +173,7 @@ export function ContactImporter() {
           ← Contacts
         </Anchor>
       </Group>
-      <Title order={2} fw={400}>
-        Importer des contacts
-      </Title>
+      <Title order={1}>Importer des contacts</Title>
 
       {parseError && (
         <Alert color="red" variant="light" radius="md">

@@ -75,6 +75,7 @@ export function DashboardView({
           radius="lg"
           component={Link}
           href="/inbox"
+          className="interactive-card"
           style={{
             textDecoration: "none",
             borderColor: "var(--mantine-color-green-6)",
@@ -262,6 +263,7 @@ function StatCard({
       padding="lg"
       component={Link}
       href={href}
+      className="interactive-card"
       style={{ textDecoration: "none" }}
     >
       <Stack gap={4}>

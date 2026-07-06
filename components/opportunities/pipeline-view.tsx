@@ -97,7 +97,13 @@ export function PipelineView({ opportunities }: Props) {
                   const overdue = isGigOverdue(o);
                   const who = o.contact_name ?? o.organization_name;
                   return (
-                    <Card key={o.id} withBorder padding="sm" radius="md">
+                    <Card
+                      key={o.id}
+                      withBorder
+                      padding="sm"
+                      radius="md"
+                      className="interactive-card"
+                    >
                       <Stack gap={6}>
                         <Anchor
                           component={Link}

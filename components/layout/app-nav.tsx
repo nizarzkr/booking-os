@@ -15,6 +15,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 
 import { logout } from "@/app/(auth)/actions";
+import { PageTransition } from "@/components/layout/page-transition";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard" },
@@ -110,7 +111,9 @@ export function AppNav({
         </Stack>
       </AppShell.Navbar>
 
-      <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Main>
+        <PageTransition>{children}</PageTransition>
+      </AppShell.Main>
     </AppShell>
   );
 }

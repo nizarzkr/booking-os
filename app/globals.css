@@ -18,3 +18,50 @@ body {
 body {
   background: var(--mantine-color-body);
 }
+
+/* Polish UX (étape 8.2) — animations CSS subtiles, cohérentes avec la DA sobre.
+   Rien de tape-à-l'œil : fondu doux à la navigation + micro-interactions hover. */
+@layer components {
+  /* Fondu + léger glissement du contenu à chaque navigation. */
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .page-enter {
+    animation: page-enter 240ms ease-out;
+  }
+
+  /* Cartes cliquables : la bordure se renforce et la carte se soulève d'1px. */
+  .interactive-card {
+    transition:
+      border-color 150ms ease,
+      transform 150ms ease;
+  }
+  .interactive-card:hover {
+    border-color: var(--mantine-color-dark-4);
+    transform: translateY(-1px);
+  }
+  .interactive-card:focus-visible {
+    outline: 2px solid var(--mantine-color-violet-4);
+    outline-offset: 2px;
+  }
+
+  /* Accessibilité : on coupe tout mouvement si l'utilisateur le demande. */
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter {
+      animation: none;
+    }
+    .interactive-card {
+      transition: none;
+    }
+    .interactive-card:hover {
+      transform: none;
+    }
+  }
+}

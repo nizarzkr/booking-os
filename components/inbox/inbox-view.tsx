@@ -126,6 +126,7 @@ export function InboxView({ items }: { items: InboxItem[] }) {
               withBorder
               radius="lg"
               padding="md"
+              className="interactive-card"
               style={
                 item.read
                   ? undefined

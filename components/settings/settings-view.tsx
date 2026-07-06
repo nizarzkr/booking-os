@@ -140,9 +140,7 @@ export function SettingsView({
 
   return (
     <Stack gap="xl" maw={640}>
-      <Title order={2} fw={400}>
-        Réglages
-      </Title>
+      <Title order={1}>Réglages</Title>
 
       {/* Espace de travail */}
       <Paper p="lg" radius="lg" withBorder>
