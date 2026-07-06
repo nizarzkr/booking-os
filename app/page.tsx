@@ -3,17 +3,19 @@ import { Badge, Box, Button, Group, Stack, Text, Title } from "@mantine/core";
 export default function HomePage() {
   return (
     <Box mih="100dvh" style={{ display: "flex", flexDirection: "column" }}>
-      {/* Accès connexion / inscription — en haut à gauche */}
-      <Group component="header" p="md" gap="sm">
-        <Text fw={600} fz="sm" me="xs" style={{ letterSpacing: "-0.01em" }}>
+      {/* Header : marque à gauche, accès connexion / inscription à droite */}
+      <Group component="header" p="md" justify="space-between" wrap="nowrap">
+        <Text fw={600} fz="sm" style={{ letterSpacing: "-0.01em" }}>
           Booking OS
         </Text>
-        <Button component="a" href="/login" variant="default" size="sm">
-          Se connecter
-        </Button>
-        <Button component="a" href="/register" size="sm">
-          Créer un compte
-        </Button>
+        <Group gap="sm">
+          <Button component="a" href="/login" variant="default" size="sm">
+            Se connecter
+          </Button>
+          <Button component="a" href="/register" size="sm">
+            Créer un compte
+          </Button>
+        </Group>
       </Group>
 
       {/* Hero */}
