@@ -1,19 +1,44 @@
-import { Badge, Center, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Group, Stack, Text, Title } from "@mantine/core";
 
 export default function HomePage() {
   return (
-    <Center mih="100dvh" p="md">
-      <Stack align="center" gap="md">
-        <Badge variant="light" color="violet" size="lg">
-          MVP en construction
-        </Badge>
-        <Title order={1} fz={{ base: 44, sm: 60 }} fw={700} ta="center">
+    <Box mih="100dvh" style={{ display: "flex", flexDirection: "column" }}>
+      {/* Accès connexion / inscription — en haut à gauche */}
+      <Group component="header" p="md" gap="sm">
+        <Text fw={600} fz="sm" me="xs" style={{ letterSpacing: "-0.01em" }}>
           Booking OS
-        </Title>
-        <Text c="dimmed" fz="lg" ta="center" maw={440}>
-          Coming soon — le booking simplifié pour les artistes indépendants.
         </Text>
+        <Button component="a" href="/login" variant="default" size="sm">
+          Se connecter
+        </Button>
+        <Button component="a" href="/register" size="sm">
+          Créer un compte
+        </Button>
+      </Group>
+
+      {/* Hero */}
+      <Stack align="center" justify="center" gap="lg" p="md" style={{ flex: 1 }}>
+        <Badge variant="light" color="violet" size="lg">
+          Pour les artistes indépendants
+        </Badge>
+        <Title
+          order={1}
+          fz={{ base: 44, sm: 64 }}
+          fw={700}
+          ta="center"
+          style={{ letterSpacing: "-0.02em" }}
+        >
+          Le booking, simplifié.
+        </Title>
+        <Text c="dimmed" fz="lg" ta="center" maw={500}>
+          Sache exactement qui contacter ou relancer aujourd&apos;hui pour
+          décrocher plus de dates. Contacts, opportunités, emails et agenda —
+          au même endroit.
+        </Text>
+        <Button component="a" href="/register" size="md" mt="xs">
+          Commencer gratuitement
+        </Button>
       </Stack>
-    </Center>
+    </Box>
   );
 }
