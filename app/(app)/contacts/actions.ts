@@ -11,8 +11,6 @@ import {
   type ContactInput,
 } from "@/components/contacts/contact-input";
 
-export type { ContactInput };
-
 export type ActionResult = { error: string } | { ok: true };
 
 async function getWorkspaceId(

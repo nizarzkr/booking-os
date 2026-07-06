@@ -13,11 +13,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 
-import {
-  createContact,
-  updateContact,
-  type ContactInput,
-} from "@/app/(app)/contacts/actions";
+import { createContact, updateContact } from "@/app/(app)/contacts/actions";
+import { type ContactInput } from "@/components/contacts/contact-input";
 import { ROLE_SELECT_OPTIONS, type Contact } from "@/components/contacts/roles";
 
 type Props = {
