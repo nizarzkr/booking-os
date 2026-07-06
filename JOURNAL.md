@@ -733,6 +733,35 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ---
 
+> ℹ️ **Note de continuité :** les phases **1 → 5.1**, ainsi que **7.1** et **8.2**, ont été construites lors de sessions intermédiaires sans entrée de journal dédiée. L'état détaillé et vérifié de chaque étape fait foi dans le **tableau d'avancement de `CLAUDE.md`** (source de vérité), tenu à jour à chaque étape.
+
+---
+
+## 2026-07-06 — Validation E2E des emails (Gmail 5.2 + 5.3) et fix server actions
+
+### Étapes complétées
+- [x] 5.2 — Connexion Gmail (OAuth2) — **validée E2E avec vrais credentials**
+- [x] 5.3 — Envoi d'email réel — **validé E2E (email envoyé ET reçu)**
+- [~] 5.4 — statut clarifié : **partiel** (affichage historique OK, réception inbound à faire)
+
+### Ce qui a été fait
+- **Setup credentials réels** : activation de l'API Gmail + écran de consentement OAuth (mode *Testing*, `nizarmgmt@gmail.com` en test user), scopes `gmail.send` + `gmail.readonly`, client OAuth « Web application » avec redirect `http://localhost:3000/api/gmail/callback`. Renseigné `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` + `SUPABASE_SERVICE_ROLE_KEY` dans `.env.local` (les creds avaient d'abord été collés en format lisible `Client ID : …` → non lus par Next ; remis au format `CLE=valeur`).
+- **Test OAuth (5.2)** : connexion → consentement → callback. Vérifié en base (`gmail_tokens`) : ligne présente pour `nizarmgmt@gmail.com` avec `access_token` **et `refresh_token`** (le cas `norefresh` est bien évité grâce à `access_type=offline`+`prompt=consent`), token valide.
+- **Test envoi (5.3)** : email réel envoyé depuis une fiche contact vers `nizarmgmt@gmail.com`, **reçu** dans la boîte. Journalisé dans `email_logs` (outbound, `gmail_message_id` + `thread_id`).
+
+### Problème rencontré / solution
+- **Bug bloquant découvert en testant l'envoi** : le bouton « Envoyer » restait en chargement (HTTP 500). Cause : `export type { ContactInput };` dans `app/(app)/contacts/actions.ts` (fichier `"use server"`). Turbopack (Next 16) n'efface pas ce ré-export d'un type importé type-only → `ReferenceError: ContactInput is not defined` au module evaluation, cassant **tout** le loader de server actions de la route `/contacts/[id]` (dont `sendEmail`). Invisible pour `tsc`.
+  - **Fix** (commit `113bd67`) : retrait du ré-export ; `contact-form-modal.tsx` importe désormais `ContactInput` depuis sa source (`components/contacts/contact-input`). Règle ajoutée aux décisions de `CLAUDE.md`.
+
+### Note MCP Gmail
+- Le MCP Gmail de la session est connecté à **`nizar@pillarops.fr`**, pas à `nizarmgmt@gmail.com` → il ne peut pas servir à vérifier les envois de l'app. La vérification de réception a été faite manuellement par Nizar. (Rappel : le MCP Gmail est un outil de l'agent, pas une brique produit — l'app doit garder son propre OAuth par workspace.)
+
+### État en fin de session
+- Emails **5.2 + 5.3 validés E2E**. Docs (`CLAUDE.md` + `JOURNAL.md`) resynchronisées.
+- Prochaine étape : **finir 5.4 (réception inbound : polling Gmail, matching thread, `/inbox`, notifs)** OU attaquer la **Phase 6 (Google Calendar)**.
+
+---
+
 <!-- TEMPLATE — copier-coller pour chaque nouvelle session
 
 ## YYYY-MM-DD — [Titre de la session]

@@ -200,7 +200,7 @@ DA « **Hatch** » adaptée product-UI (voir DESIGN_SYSTEM.md) :
 
 > Mettre à jour cette section après chaque étape complétée.
 
-**🔖 Reprise (au 2026-07-01) :** Blocs 0, 1, 2 terminés et **vérifiés E2E**. **Opportunités (3.1/3.2/3.4)** + **Tâches (4.1/4.3)** construites — checks statiques verts, DB/RLS vérifiées via MCP ; **E2E navigateur guidé restant à jouer** sur oppos + tâches. **Blocs 3 et 4 complets** + **5.1 Templates email** livrés. **Toute la nav est fonctionnelle.** **Refonte DA complète (2026-07-02) : passage à la DA « Studio » — dark-first minimal, accent violet, typo Geist (Sans + Mono pour les nombres).** L'ancienne DA « Hatch » (crème/pastel/serif/sticker) est retirée. Voir `DESIGN_SYSTEM.md` (réécrit). Base = seed (avec 1 template) + quelques données de test. **Prochaine étape : 5.2 — Connexion Gmail (OAuth2)** — nécessite les creds Google + `SUPABASE_SERVICE_ROLE_KEY`. Rappel : livrer la fiche `/[id]` d'emblée pour toute nouvelle entité-profil (cf. mémoires ; les tâches en sont exemptées).
+**🔖 Reprise (au 2026-07-06) :** Blocs 0→4 complets + **5.1 Templates**. **Emails : 5.2 (OAuth Gmail) et 5.3 (envoi réel) validés E2E aujourd'hui avec de vrais credentials Google** — connexion → consentement → token stocké (avec `refresh_token`) → **email réellement envoyé ET reçu** sur `nizarmgmt@gmail.com`, journalisé dans `email_logs`. **5.4 partielle** : affichage de l'historique OK, mais la **réception inbound** (polling Gmail, matching thread, `/inbox`, notifs) reste à faire. **7.1 Import CSV** livré, **7.2 Settings** en amorce, **8.2 Polish** partiel (loading/error/not-found). DA « Studio » (dark-first, accent violet, Geist) — voir `DESIGN_SYSTEM.md`. **Prochaine étape recommandée : finir 5.4 (réception inbound) OU Phase 6 (Google Calendar).** Rappel : livrer la fiche `/[id]` d'emblée pour toute nouvelle entité-profil (cf. mémoires ; les tâches en sont exemptées). ⚠️ **Piège Next 16 confirmé** : jamais de `export type { X }` (ré-export de type importé) dans un fichier `"use server"` — Turbopack ne l'efface pas → `ReferenceError` runtime (voir décisions).
 
 | Étape | Statut | Notes |
 |-------|--------|-------|
@@ -220,15 +220,15 @@ DA « **Hatch** » adaptée product-UI (voir DESIGN_SYSTEM.md) :
 | 4.2 — Dashboard today | ✅ Fait | `/dashboard` server component : compteurs cliquables (contacts / oppos actives / tâches en retard), « À relancer aujourd'hui » (tâches ouvertes échéance ≤ today + lien fiche), « Prochaines dates confirmées » (30j), « Options en cours ». Items cliquables → fiche. Checks + simulation DB OK ; E2E nav à jouer. |
 | 4.3 — Vue tâches | ✅ Fait | Page `/tasks` : liste filtrable (à faire / en retard / cette semaine / terminées / toutes), coche inline, badge d'échéance, lien vers oppo/contact, edit/delete. Nav « Tâches » activée. |
 | 5.1 — Templates email | ✅ Fait | Table `email_templates` (migration + RLS `ws_all` + trigger updated_at + types régénérés). Page `/templates` : CRUD + **aperçu sur données réelles** (variables `{{contact_name}}`/`{{artist_name}}`/`{{venue}}`/`{{gig_date}}`/`{{fee}}`/`{{city}}` résolues via contact + oppo sélectionnés). `renderTemplate()` dans template-types. Nav « Templates » activée (plus de « bientôt »). Template d'exemple seedé. |
-| 5.2 — Connexion Gmail | ⬜ À faire | |
-| 5.3 — Envoi email | ⬜ À faire | |
-| 5.4 — Réception emails | ⬜ À faire | |
+| 5.2 — Connexion Gmail | ✅ Fait | OAuth2 Google (`api/gmail/connect` + `callback`, `lib/gmail/oauth`). State anti-CSRF (cookie httpOnly), `access_type=offline`+`prompt=consent` → `refresh_token` exigé (cas `norefresh` géré). Tokens stockés via client `service_role` (`gmail_tokens` verrouillée). Refresh auto avec marge 1 min (`lib/gmail/client`). Statut affiché dans `/settings`, déconnexion + révocation. **Validé E2E 2026-07-06 avec vrais creds : token stocké avec refresh_token.** |
+| 5.3 — Envoi email | ✅ Fait | `sendEmail` (`emails/actions.ts`) → `sendGmailMessage` (API Gmail `messages.send`, MIME base64url, en-têtes RFC 2047). `SendEmailModal` (destinataire éditable, templates, variables résolues). Journalisé dans `email_logs` (outbound, `gmail_message_id`+`thread_id`). Fallback Resend non implémenté (Gmail requis). **Validé E2E 2026-07-06 : email réellement envoyé ET reçu.** |
+| 5.4 — Réception emails | 🟡 Partiel | **Affichage** de l'historique OK (`components/emails/email-history.tsx`, lit `email_logs`, affiché sur fiche contact + oppo). **Réception inbound NON faite** : pas de polling Gmail (`messages.list`), pas de matching par thread, pas d'insertion inbound, pas de page `/inbox`, pas de notifs dashboard. Scope `gmail.readonly` déjà demandé mais inutilisé. **← Reste à faire.** |
 | 6.1 — Connexion Google Calendar | ⬜ À faire | |
 | 6.2 — Sync Calendar | ⬜ À faire | |
-| 7.1 — Import CSV | ⬜ À faire | |
-| 7.2 — Settings | ⬜ À faire | |
-| 8.1 — Beta test | ⬜ À faire | |
-| 8.2 — Polish UX | ⬜ À faire | |
+| 7.1 — Import CSV | ✅ Fait | Page `/settings/import` : upload CSV, mapping colonnes, aperçu, import avec rapport (`contact-importer.tsx` + `settings/import/actions.ts`, validation email, cap `MAX_ROWS` 1000). |
+| 7.2 — Settings | 🟡 Amorce | Page `/settings` minimale (nom workspace, email compte, bloc statut/connexion Gmail). Reply-to, déconnexion Calendar, suppression de compte = à faire. |
+| 8.1 — Beta test | ⬜ À faire | Nécessite déploiement Vercel (manuel). |
+| 8.2 — Polish UX | 🟡 Partiel | `loading.tsx` / `error.tsx` / `not-found.tsx` en place. Reste : responsive mobile complet, cohérence états vides, animations/transitions. |
 | 8.3 — Billing Stripe | ⬜ À faire | |
 
 ---
@@ -259,6 +259,8 @@ DA « **Hatch** » adaptée product-UI (voir DESIGN_SYSTEM.md) :
 | 2026-07-01 | DA « Hatch » claire/pastel adaptée product-UI (remplace le dark Linear/Raycast) | Choix DA de l'utilisateur (`DESIGN BOOKING OS/`). Esprit conservé pour marque/landing, densité calmée pour l'app. Thème Mantine recablé (light, mint primary, autoContrast). |
 | 2026-07-01 | Polices : substituts libres DM Serif Display + Inter | Recoleta/Lota Grotesque sont commerciales ; substituts Google Fonts intégrés via next/font. **Remplacé le 2026-07-02 par Geist.** |
 | 2026-07-02 | **Pivot DA « Hatch » → « Studio »** (dark-first minimal, accent violet unique, Geist) | La DA pastel/sticker était devenue incohérente (« Frankenstein »). Refonte vers un langage sobre type Linear/Vercel, adapté à un outil de travail. Piloté par le thème Mantine (pas de shadcn : migrer coûterait une réécriture totale sans bénéfice). Statuts = seule famille sémantique colorée. |
+| 2026-07-06 | ⚠️ **Interdit : `export type { X }` (ré-export d'un type importé type-only) dans un fichier `"use server"`** | Turbopack (Next 16) n'efface pas le ré-export → `ReferenceError: X is not defined` au module evaluation, ce qui casse **tout** le loader de server actions de la route (pas juste la ligne). Invisible pour `tsc` (TS valide), purement runtime. Latent depuis la phase 2, débusqué en testant l'envoi Gmail. Règle : un fichier `"use server"` n'exporte que des fonctions async (+ types **définis localement**) ; les types se ré-exposent depuis leur module source. |
+| 2026-07-06 | Envoi email : **Gmail requis, fallback Resend non implémenté** | Le MVP suppose une boîte Gmail connectée. `sendEmail` renvoie une erreur claire si aucune connexion. Le fallback Resend de la roadmap 5.3 est reporté (pas prioritaire tant que Gmail couvre le besoin). |
 
 ---
 
