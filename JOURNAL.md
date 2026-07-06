@@ -758,7 +758,36 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ### État en fin de session
 - Emails **5.2 + 5.3 validés E2E**. Docs (`CLAUDE.md` + `JOURNAL.md`) resynchronisées.
-- Prochaine étape : **finir 5.4 (réception inbound : polling Gmail, matching thread, `/inbox`, notifs)** OU attaquer la **Phase 6 (Google Calendar)**.
+- Prochaine étape : **5.4 (réception inbound)** — enchaînée dans la foulée (ci-dessous).
+
+---
+
+## 2026-07-06 (suite) — Étape 5.4 : réception des réponses entrantes
+
+### Étapes complétées
+- [x] 5.4 — Réception inbound Gmail. **Phase 5 (emails) désormais complète.**
+
+### Décisions prises
+- **Déclencheur du polling : « à la demande + route sécurisée »** (choix utilisateur). Sync au chargement de `/inbox` (auto + bouton Rafraîchir) via server action, ET route `GET /api/gmail/sync` protégée par `CRON_SECRET`, prête pour un Vercel Cron. Écarté : Vercel Cron seul (intestable en local), pg_cron/Edge Function (trop lourd maintenant).
+- Récupération limitée aux **threads déjà connus** du workspace (`email_logs.gmail_thread_id`) : simple et suffisant pour capter les *réponses* aux emails envoyés depuis l'app (pas un client mail générique).
+- **Manipulation via client admin** (`service_role`) dans `receive.ts` pour rester réutilisable côté action ET côté cron (pas de session) ; scope workspace explicite.
+
+### Ce qui a été mis en place
+- `lib/gmail/receive.ts` : `syncInboundForWorkspace` (idempotent, dédup par `gmail_message_id`, héritage `contact_id`/`opportunity_id`, thread illisible non bloquant) + parsing MIME (base64url, walk text/plain>html nettoyé, décodage RFC 2047, corps plafonné 10k).
+- `app/(app)/inbox/actions.ts` (`syncInbox`, `markAllInboundRead`), page `/inbox` + `components/inbox/inbox-view.tsx`.
+- `app/api/gmail/sync/route.ts` (cron, `CRON_SECRET`) + exclusion de la garde dans `lib/supabase/proxy.ts`.
+- Nav « Réponses » + badge non-lus (`app-nav` + compteur dans `layout`), bannière dashboard.
+- `.env.local.example` : `CRON_SECRET` documenté.
+
+### Vérifications
+- Route testée : 401 sans/mauvais secret, 200 avec (`{ok:true, workspaces:1, inserted:0}` sur thread sans réponse).
+- **E2E complet** : email app → réponse reçue → sync → ligne `inbound` créée (`subject` décodé « Re: … », rattachée au contact, `read:false`). Confirmé en base.
+- `typecheck` + `lint` verts.
+
+### État en fin de session
+- **Phase 5 (emails) terminée et validée E2E.**
+- Prochaine étape : **Phase 6 — Google Calendar** (6.1 OAuth + 6.2 sync des options/dates confirmées).
+- Note infra : brancher un **Vercel Cron** sur `/api/gmail/sync` (avec `CRON_SECRET`) au déploiement, pour la sync inbound en arrière-plan.
 
 ---
 
