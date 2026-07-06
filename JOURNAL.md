@@ -816,8 +816,36 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ### État en fin de session
 - **Phases 5 ET 6 terminées et validées E2E.** Le MVP est quasi complet (reste 7.2 settings à finir, et le bloc 8 qualité/lancement).
-- Prochaine étape : **finir 7.2 (Settings : reply-to, déconnexions, suppression compte)** ou attaquer le **bloc 8** (polish responsive, beta, billing Stripe).
+- Prochaine étape : **7.2 (Settings)** — enchaînée dans la foulée (ci-dessous).
 - Note infra déploiement : Vercel Cron sur `/api/gmail/sync` (inbound) ; le token Google porte maintenant Gmail + Calendar.
+
+---
+
+## 2026-07-06 (suite) — Étape 7.2 : Settings + déplacement de l'import CSV
+
+### Étapes complétées
+- [x] 7.2 — Settings du workspace (périmètre adapté à l'archi). **MVP : chemin critique terminé.**
+- [x] 7.1 (ajustement UX) — import CSV déplacé dans la section Contacts.
+
+### Décisions prises
+- **Périmètre 7.2 recadré** (choix utilisateur, multi-select) : on livre **signature + reply-to** et **suppression de compte**. Écartés car hors-archi : « adresse d'envoi custom-domain » (on envoie depuis la vraie adresse Gmail), « déconnexion Calendar » séparée (= déconnexion Google, connexion réutilisée). Toggle sync agenda non retenu.
+- **Import CSV déplacé** `/settings/import` → `/contacts/import` (l'import a plus sa place dans la section Contacts). `git mv` (historique préservé).
+
+### Ce qui a été mis en place
+- Migration `add_workspace_email_signature_reply_to` (colonnes `email_signature`, `reply_to` sur `workspaces`) + types régénérés.
+- Envoi : `sendGmailMessage` accepte `replyTo` (header Reply-To) ; `sendEmail` récupère signature/reply-to du workspace et les applique (signature ajoutée au corps).
+- `settings/actions.ts` : `updateWorkspace` étendu (validation reply-to) + `deleteAccount` (révoque Google → supprime workspace en cascade → `users` public + `auth.admin.deleteUser` ; confirmation par saisie du nom de l'espace).
+- `settings-view.tsx` : champs signature/reply-to + zone de danger (modale de confirmation) ; bloc import retiré.
+- Import : bouton « Importer un CSV » dans l'en-tête de `/contacts` ; lien retour de l'importer → « ← Contacts ».
+
+### Vérifications
+- `typecheck` (après purge du cache `.next/types` suite au `git mv`) + `lint` verts.
+- Signature/reply-to : testables sans risque (à faire par Nizar : régler puis envoyer un test vers pillarops, vérif via MCP Gmail).
+- **Suppression de compte : NON testée E2E** (destructive — ne pas exécuter sur le vrai compte). À valider sur un compte jetable ; revue de code faite.
+
+### État en fin de session
+- **MVP fonctionnel complet** (phases 0→7). Reste le bloc 8 : 8.2 polish (responsive/états vides/animations — actuellement partiel), 8.1 beta (déploiement Vercel), 8.3 billing Stripe.
+- Rappels déploiement : Vercel Cron `/api/gmail/sync` ; régénérer `GOOGLE_CLIENT_SECRET` (exposé en clair en session) ; brancher les scopes Google (Gmail + Calendar) sur l'app publiée.
 
 ---
 
