@@ -786,8 +786,38 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ### État en fin de session
 - **Phase 5 (emails) terminée et validée E2E.**
-- Prochaine étape : **Phase 6 — Google Calendar** (6.1 OAuth + 6.2 sync des options/dates confirmées).
+- Prochaine étape : **Phase 6 — Google Calendar** — enchaînée dans la foulée (ci-dessous).
 - Note infra : brancher un **Vercel Cron** sur `/api/gmail/sync` (avec `CRON_SECRET`) au déploiement, pour la sync inbound en arrière-plan.
+
+---
+
+## 2026-07-06 (suite) — Phase 6 : sync Google Calendar
+
+### Étapes complétées
+- [x] 6.1 — Connexion Google Calendar
+- [x] 6.2 — Sync des dates vers Google Calendar. **Phase 6 complète.**
+
+### Décisions prises
+- **Connexion Google réutilisée** (choix utilisateur) : pas de flow/table Calendar séparés. Le compte Gmail sert de connexion Calendar ; scope `calendar.events` ajouté à l'OAuth existant, sync via le token `gmail_tokens`. Contrepartie : couplage Gmail/Calendar + reconnexion nécessaire pour acquérir le scope.
+- Événements en **journée entière** sur `gig_date` (pas d'heure — le MVP n'a pas d'horaire de gig). Couleurs : option=jaune (colorId 5), confirmed=vert (colorId 10).
+- Sync **best-effort** : un échec agenda (non connecté, token sans scope, réseau) ne casse jamais la mutation d'opportunité déjà réussie.
+
+### Ce qui a été mis en place
+- `lib/gmail/oauth.ts` : scope `calendar.events` ajouté à `GMAIL_SCOPES`.
+- `lib/google-calendar/client.ts` : create/update/delete event (API Calendar v3), 404/410 gérés (event supprimé côté Google → recréation).
+- `lib/google-calendar/sync.ts` : `syncOpportunityCalendar` (upsert si `option|confirmed` + date, suppression sinon ; réécrit `google_calendar_event_id`) + `removeOpportunityEvent` (suppression d'opportunité).
+- Branchement dans `opportunities/actions.ts` : create (avec `.select("id")`), update, setStatus, delete (lecture de l'`event_id` avant suppression).
+- Réglages : bloc « Google » (Gmail + Agenda) + bouton **Reconnecter**.
+- Aucune migration : réutilise `opportunities.google_calendar_event_id` (déjà au schéma).
+
+### Vérifications
+- E2E : « Concert Malakoff » → `confirmed` → événement créé (`google_calendar_event_id` réécrit, visible dans l'agenda) ; → `cancelled` → événement supprimé (`event_id` remis à null, disparu de l'agenda). Prérequis effectués par Nizar : activation Google Calendar API + ajout scope + reconnexion.
+- `typecheck` + `lint` verts.
+
+### État en fin de session
+- **Phases 5 ET 6 terminées et validées E2E.** Le MVP est quasi complet (reste 7.2 settings à finir, et le bloc 8 qualité/lancement).
+- Prochaine étape : **finir 7.2 (Settings : reply-to, déconnexions, suppression compte)** ou attaquer le **bloc 8** (polish responsive, beta, billing Stripe).
+- Note infra déploiement : Vercel Cron sur `/api/gmail/sync` (inbound) ; le token Google porte maintenant Gmail + Calendar.
 
 ---
 
