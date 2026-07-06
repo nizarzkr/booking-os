@@ -26,8 +26,16 @@ import {
   ROLE_META,
   type Contact,
 } from "@/components/contacts/roles";
+import { EnrollToSequenceModal } from "@/components/sequences/enroll-to-sequence-modal";
+import { type Sequence } from "@/components/sequences/sequence-types";
 
-export function ContactsView({ contacts }: { contacts: Contact[] }) {
+export function ContactsView({
+  contacts,
+  sequences = [],
+}: {
+  contacts: Contact[];
+  sequences?: Sequence[];
+}) {
   const router = useRouter();
 
   const [search, setSearch] = useState("");
@@ -36,6 +44,7 @@ export function ContactsView({ contacts }: { contacts: Contact[] }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
 
+  const [enrolling, setEnrolling] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState<Contact | null>(null);
   const [isDeletePending, startDelete] = useTransition();
 
@@ -181,6 +190,9 @@ export function ContactsView({ contacts }: { contacts: Contact[] }) {
                               <Menu.Item onClick={() => openEdit(c)}>
                                 Modifier
                               </Menu.Item>
+                              <Menu.Item onClick={() => setEnrolling(c)}>
+                                Ajouter à une séquence
+                              </Menu.Item>
                               <Menu.Item
                                 color="red"
                                 onClick={() => setDeleting(c)}
@@ -213,6 +225,14 @@ export function ContactsView({ contacts }: { contacts: Contact[] }) {
           onClose={() => setFormOpen(false)}
           onSaved={handleSaved}
           contact={editing}
+        />
+      )}
+
+      {enrolling && (
+        <EnrollToSequenceModal
+          contactId={enrolling.id}
+          sequences={sequences}
+          onClose={() => setEnrolling(null)}
         />
       )}
 

@@ -35,24 +35,30 @@ export default async function ContactDetailPage({
 
   // Toutes les organisations du workspace (sélecteur de liaison), tâches liées,
   // templates d'email (pour l'envoi) et nom d'artiste (variable de template).
-  const [{ data: allOrgs }, { data: tasks }, { data: templates }, { data: ws }] =
-    await Promise.all([
-      supabase
-        .from("organizations")
-        .select("id, name, type, city, country, website, notes")
-        .order("name", { ascending: true }),
-      supabase
-        .from("tasks")
-        .select("id, title, due_date, done, opportunity_id, contact_id")
-        .eq("contact_id", id)
-        .order("done", { ascending: true })
-        .order("due_date", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("email_templates")
-        .select("id, name, subject, body")
-        .order("name", { ascending: true }),
-      supabase.from("workspaces").select("name").limit(1).maybeSingle(),
-    ]);
+  const [
+    { data: allOrgs },
+    { data: tasks },
+    { data: templates },
+    { data: ws },
+    { data: sequences },
+  ] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("id, name, type, city, country, website, notes")
+      .order("name", { ascending: true }),
+    supabase
+      .from("tasks")
+      .select("id, title, due_date, done, opportunity_id, contact_id")
+      .eq("contact_id", id)
+      .order("done", { ascending: true })
+      .order("due_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("email_templates")
+      .select("id, name, subject, body")
+      .order("name", { ascending: true }),
+    supabase.from("workspaces").select("name").limit(1).maybeSingle(),
+    supabase.from("sequences").select("id, name").order("name", { ascending: true }),
+  ]);
 
   // Historique des emails de ce contact.
   const { data: emailLogs } = await supabase
@@ -70,6 +76,7 @@ export default async function ContactDetailPage({
       templates={templates ?? []}
       artistName={ws?.name ?? ""}
       emailLogs={emailLogs ?? []}
+      sequences={sequences ?? []}
     />
   );
 }

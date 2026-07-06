@@ -80,7 +80,7 @@ export function InboxView({ items }: { items: InboxItem[] }) {
       <Group justify="space-between" align="center">
         <Stack gap={2}>
           <Group gap="sm">
-            <Title order={1}>Réponses</Title>
+            <Title order={2}>Réponses</Title>
             {unreadCount > 0 && (
               <Badge color="green" variant="filled" size="lg">
                 {unreadCount}

@@ -6,6 +6,32 @@
 
 ---
 
+## 2026-07-06 — Refonte UX de la navigation (A→E) + moteur de séquences
+
+### Contexte
+Audit UX/UI complet (sidebar plate de 9 entrées, jargon « vente », pilier Outreach dispersé et incomplet). Refonte de l'architecture de l'information en hubs, puis construction du pilier manquant.
+
+### Construit (par étape)
+- **A — Sidebar en sections** (`app-nav.tsx`) : 9 entrées plates → sections groupées + vocabulaire musicien (`Dashboard→Aujourd'hui`, `Opportunités→Dates`, `Templates→Modèles`, `Réponses→Réception`).
+- **B — Rubrique « Dates »** : fusion Pipeline + Opportunités en une route `/opportunities` à 3 vues (`SegmentedControl` Kanban/Liste/**Calendrier** — nouveau `opportunity-calendar.tsx` via `@mantine/dates`). `/pipeline` → redirection. Statuts « grand public » (`À contacter · Contacté · En discussion · Pré-réservé · Confirmé · Annulé`).
+- **C — Hub « Contacts »** : onglets Personnes / Lieux (`contacts-hub.tsx`). `/organizations` (liste) → redirection ; fiches `[id]` conservées.
+- **D — Hub « Prospection »** (`/outreach`, `outreach-hub.tsx`) : onglets Séquences · Modèles · Réception. `/templates` et `/inbox` → redirections ; badge non-lus migré sur l'entrée Prospection.
+- **E — Moteur de séquences** : migration `sequences`/`sequence_steps`/`sequence_enrollments` (RLS `ws_all`), `lib/sequences/run.ts` (`processEnrollment` + `runDueSteps` : coupure sur réponse → envoi Gmail → avance d'étape), cron `/api/sequences/run` (`CRON_SECRET`, 2ᵉ entrée `vercel.json` à `0 9`, exclusion `proxy.ts`), builder `/sequences/[id]`, enrôlement depuis fiche/liste contact + séquence. Étape à sujet/corps propres + variables ; envoi immédiat de l'étape à délai 0.
+
+### Décisions
+- Sync des vues/onglets dans l'URL (`?view=` / `?tab=`) via `history.replaceState` (état local source de vérité, pas de refetch).
+- Anciennes routes gardées en **redirections** (aucun lien/bookmark cassé).
+- Envoi des séquences : **Vercel Cron + route API** (réutilise l'infra du sync Gmail), pas de pg_cron/pgmq (plus simple, granularité jour = OK pour délais en jours).
+
+### Vérifications
+- typecheck ✅ · lint ✅ · advisors sécurité clean · migration appliquée en prod · routes compilent · garde cron OK (401 sans secret) · **cron exécuté réellement contre la DB → 200 `{processed:0,sent:0,stopped:0}`**.
+- ⏳ **TESTS E2E À FAIRE DEMAIN (2026-07-07)** : tout le cycle authentifié n'a pas encore été validé à la main. À vérifier avec session connectée + Gmail branché :
+  - A→D : bascules de vues/onglets, redirections, calendrier, badge non-lus.
+  - E (le principal) : créer une séquence + étapes, enrôler un contact de test → envoi immédiat de l'étape 0, coupure sur réponse (répondre → sync inbound → relancer le cron → statut « Arrêté · a répondu »), relance forcée (`next_send_at` passé → cron).
+- Étape **F (drag & drop du Kanban)** : en cours juste après cette entrée.
+
+---
+
 ## 2026-07-02 — Étape 8.2 : Polish UX — fichiers spéciaux Next
 
 ### Contexte

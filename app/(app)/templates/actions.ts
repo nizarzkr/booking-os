@@ -59,7 +59,7 @@ export async function createTemplate(
 
   if (error) return { error: "Impossible de créer le template. Réessaie." };
 
-  revalidatePath("/templates");
+  revalidatePath("/outreach");
   return { ok: true };
 }
 
@@ -79,7 +79,7 @@ export async function updateTemplate(
 
   if (error) return { error: "Impossible de modifier le template. Réessaie." };
 
-  revalidatePath("/templates");
+  revalidatePath("/outreach");
   return { ok: true };
 }
 
@@ -92,6 +92,6 @@ export async function deleteTemplate(id: string): Promise<ActionResult> {
 
   if (error) return { error: "Impossible de supprimer le template. Réessaie." };
 
-  revalidatePath("/templates");
+  revalidatePath("/outreach");
   return { ok: true };
 }

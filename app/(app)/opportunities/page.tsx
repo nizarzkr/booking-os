@@ -7,7 +7,19 @@ import {
   type OpportunityListItem,
 } from "@/components/opportunities/opportunities-view";
 
-export default async function OpportunitiesPage() {
+const VALID_VIEWS = ["kanban", "list", "calendar"] as const;
+type DatesView = (typeof VALID_VIEWS)[number];
+
+export default async function OpportunitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view } = await searchParams;
+  const initialView: DatesView = VALID_VIEWS.includes(view as DatesView)
+    ? (view as DatesView)
+    : "kanban";
+
   const supabase = await createClient();
 
   // RLS scope automatiquement au workspace courant (current_workspace_id()).
@@ -59,17 +71,18 @@ export default async function OpportunitiesPage() {
 
   return (
     <Stack gap="lg">
-      <Title order={1}>Opportunités</Title>
+      <Title order={1}>Dates</Title>
 
       {error ? (
         <Alert color="red" variant="light" radius="md">
-          Impossible de charger les opportunités. Réessaie.
+          Impossible de charger les dates. Réessaie.
         </Alert>
       ) : (
         <OpportunitiesView
           opportunities={opportunities}
           contactOptions={contactOptions}
           organizationOptions={organizationOptions}
+          initialView={initialView}
         />
       )}
     </Stack>

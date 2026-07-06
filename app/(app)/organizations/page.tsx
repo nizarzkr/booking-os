@@ -1,28 +1,11 @@
-import { Alert, Stack, Title } from "@mantine/core";
+import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
-import { OrganizationsView } from "@/components/organizations/organizations-view";
-
-export default async function OrganizationsPage() {
-  const supabase = await createClient();
-
-  // RLS scope automatiquement au workspace courant (current_workspace_id()).
-  const { data: organizations, error } = await supabase
-    .from("organizations")
-    .select("id, name, type, city, country, website, notes")
-    .order("name", { ascending: true });
-
-  return (
-    <Stack gap="lg">
-      <Title order={1}>Organisations</Title>
-
-      {error ? (
-        <Alert color="red" variant="light" radius="md">
-          Impossible de charger les organisations. Réessaie.
-        </Alert>
-      ) : (
-        <OrganizationsView organizations={organizations ?? []} />
-      )}
-    </Stack>
-  );
+/**
+ * La liste des organisations a fusionné dans la rubrique « Contacts » (étape C) :
+ * elle est désormais l'onglet « Lieux » de /contacts. On garde cette route en
+ * redirection pour ne casser aucun lien / bookmark. Les fiches
+ * /organizations/[id] restent servies normalement.
+ */
+export default function OrganizationsPage() {
+  redirect("/contacts?tab=places");
 }

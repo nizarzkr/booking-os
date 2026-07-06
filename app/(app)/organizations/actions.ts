@@ -84,7 +84,7 @@ export async function createOrganization(
 
   if (error) return { error: "Impossible de créer l'organisation. Réessaie." };
 
-  revalidatePath("/organizations");
+  revalidatePath("/contacts");
   return { ok: true };
 }
 
@@ -104,7 +104,7 @@ export async function updateOrganization(
 
   if (error) return { error: "Impossible de modifier l'organisation. Réessaie." };
 
-  revalidatePath("/organizations");
+  revalidatePath("/contacts");
   return { ok: true };
 }
 
@@ -115,6 +115,6 @@ export async function deleteOrganization(id: string): Promise<ActionResult> {
   if (error)
     return { error: "Impossible de supprimer l'organisation. Réessaie." };
 
-  revalidatePath("/organizations");
+  revalidatePath("/contacts");
   return { ok: true };
 }
