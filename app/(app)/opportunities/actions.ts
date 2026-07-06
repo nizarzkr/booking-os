@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  syncOpportunityCalendar,
+  removeOpportunityEvent,
+} from "@/lib/google-calendar/sync";
 
 type OpportunityStatus = Database["public"]["Enums"]["opportunity_status"];
 
@@ -91,11 +95,17 @@ export async function createOpportunity(
   const workspace_id = await getWorkspaceId(supabase);
   if (!workspace_id) return { error: "Session invalide. Reconnecte-toi." };
 
-  const { error } = await supabase
+  const { data: created, error } = await supabase
     .from("opportunities")
-    .insert({ workspace_id, ...fields });
+    .insert({ workspace_id, ...fields })
+    .select("id")
+    .single();
 
-  if (error) return { error: "Impossible de créer l'opportunité. Réessaie." };
+  if (error || !created)
+    return { error: "Impossible de créer l'opportunité. Réessaie." };
+
+  // Sync agenda (best-effort) : crée l'événement si option/confirmed + date.
+  await syncOpportunityCalendar(workspace_id, created.id);
 
   revalidatePath("/opportunities");
   return { ok: true };
@@ -110,6 +120,9 @@ export async function updateOpportunity(
   if (invalid) return { error: invalid };
 
   const supabase = await createClient();
+  const workspace_id = await getWorkspaceId(supabase);
+  if (!workspace_id) return { error: "Session invalide. Reconnecte-toi." };
+
   // RLS scope la mise à jour au workspace courant.
   const { error } = await supabase
     .from("opportunities")
@@ -118,6 +131,9 @@ export async function updateOpportunity(
 
   if (error) return { error: "Impossible de modifier l'opportunité. Réessaie." };
 
+  // Sync agenda (statut/date peuvent avoir changé).
+  await syncOpportunityCalendar(workspace_id, id);
+
   revalidatePath("/opportunities");
   revalidatePath(`/opportunities/${id}`);
   return { ok: true };
@@ -125,10 +141,23 @@ export async function updateOpportunity(
 
 export async function deleteOpportunity(id: string): Promise<ActionResult> {
   const supabase = await createClient();
+  const workspace_id = await getWorkspaceId(supabase);
+
+  // Lire l'event_id AVANT suppression pour pouvoir retirer l'événement agenda.
+  const { data: opp } = await supabase
+    .from("opportunities")
+    .select("google_calendar_event_id")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("opportunities").delete().eq("id", id);
 
   if (error)
     return { error: "Impossible de supprimer l'opportunité. Réessaie." };
+
+  if (workspace_id && opp?.google_calendar_event_id) {
+    await removeOpportunityEvent(workspace_id, opp.google_calendar_event_id);
+  }
 
   revalidatePath("/opportunities");
   return { ok: true };
@@ -143,12 +172,18 @@ export async function setOpportunityStatus(
     return { error: "Statut invalide." };
 
   const supabase = await createClient();
+  const workspace_id = await getWorkspaceId(supabase);
+  if (!workspace_id) return { error: "Session invalide. Reconnecte-toi." };
+
   const { error } = await supabase
     .from("opportunities")
     .update({ status: status as OpportunityStatus })
     .eq("id", id);
 
   if (error) return { error: "Impossible de changer le statut. Réessaie." };
+
+  // Sync agenda : option→jaune, confirmed→vert, autre→suppression.
+  await syncOpportunityCalendar(workspace_id, id);
 
   revalidatePath("/pipeline");
   revalidatePath("/opportunities");

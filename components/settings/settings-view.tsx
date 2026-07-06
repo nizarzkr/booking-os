@@ -185,14 +185,14 @@ export function SettingsView({
           <Stack gap={2}>
             <Text fw={600}>Intégrations</Text>
             <Text c="dimmed" size="sm">
-              Connecte ta boîte Gmail pour envoyer et suivre tes emails depuis
-              Booking OS.
+              Connecte ton compte Google pour envoyer et suivre tes emails
+              (Gmail) et synchroniser tes dates dans ton agenda (Calendar).
             </Text>
           </Stack>
 
           <Group justify="space-between">
             <Group gap="sm">
-              <Text fw={500}>Gmail</Text>
+              <Text fw={500}>Google</Text>
               {isConnected ? (
                 <Badge color="green" variant="light">
                   {gmail.email}
@@ -205,17 +205,22 @@ export function SettingsView({
             </Group>
 
             {isConnected ? (
-              <Button
-                variant="default"
-                color="gray"
-                loading={gmailLoading}
-                onClick={handleDisconnect}
-              >
-                Déconnecter
-              </Button>
+              <Group gap="xs">
+                <Button component="a" href="/api/gmail/connect" variant="light">
+                  Reconnecter
+                </Button>
+                <Button
+                  variant="default"
+                  color="gray"
+                  loading={gmailLoading}
+                  onClick={handleDisconnect}
+                >
+                  Déconnecter
+                </Button>
+              </Group>
             ) : gmail.configured ? (
               <Button component="a" href="/api/gmail/connect">
-                Connecter Gmail
+                Connecter Google
               </Button>
             ) : (
               <Button variant="default" disabled>
@@ -223,6 +228,14 @@ export function SettingsView({
               </Button>
             )}
           </Group>
+
+          {isConnected && (
+            <Text c="dimmed" size="xs">
+              Gmail + Agenda utilisent cette connexion. Connecté avant l&apos;ajout
+              de l&apos;agenda ? Clique <strong>Reconnecter</strong> pour
+              autoriser Google&nbsp;Calendar.
+            </Text>
+          )}
 
           {!gmail.configured && !isConnected && (
             <Text c="dimmed" size="xs">

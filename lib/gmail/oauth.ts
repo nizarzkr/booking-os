@@ -6,10 +6,19 @@ const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const GMAIL_PROFILE_URL =
   "https://gmail.googleapis.com/gmail/v1/users/me/profile";
 
-/** Scopes demandés : lecture (réponses inbound) + envoi. */
+/**
+ * Scopes Google demandés lors de la connexion (le compte Gmail sert aussi de
+ * connexion Google Calendar, cf. décision 2026-07-06) :
+ * - Gmail : lecture (réponses inbound) + envoi.
+ * - Calendar : gestion des événements (sync des options / dates confirmées).
+ *
+ * Note : un token déjà émis sans `calendar.events` doit être re-consenti
+ * (reconnexion Gmail dans les réglages) pour acquérir le scope Calendar.
+ */
 export const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/calendar.events",
 ];
 
 export type GoogleOAuthConfig = {
