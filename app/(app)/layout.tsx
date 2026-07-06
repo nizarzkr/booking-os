@@ -26,11 +26,26 @@ export default async function AppLayout({
 
   if (!profile?.workspace_id) redirect("/onboarding");
 
-  const { data: workspace } = await supabase
-    .from("workspaces")
-    .select("name")
-    .eq("id", profile.workspace_id)
-    .single();
+  const [{ data: workspace }, { count: unreadInbox }] = await Promise.all([
+    supabase
+      .from("workspaces")
+      .select("name")
+      .eq("id", profile.workspace_id)
+      .single(),
+    // Réponses entrantes non lues (RLS scope au workspace courant).
+    supabase
+      .from("email_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("direction", "inbound")
+      .eq("read", false),
+  ]);
 
-  return <AppNav workspaceName={workspace?.name ?? "Mon espace"}>{children}</AppNav>;
+  return (
+    <AppNav
+      workspaceName={workspace?.name ?? "Mon espace"}
+      unreadInbox={unreadInbox ?? 0}
+    >
+      {children}
+    </AppNav>
+  );
 }

@@ -40,7 +40,12 @@ export type OptionItem = {
 
 type Props = {
   todayLabel: string;
-  counts: { contacts: number; activeOpps: number; overdue: number };
+  counts: {
+    contacts: number;
+    activeOpps: number;
+    overdue: number;
+    unreadInbox: number;
+  };
   relance: RelanceItem[];
   confirmed: ConfirmedItem[];
   options: OptionItem[];
@@ -61,6 +66,32 @@ export function DashboardView({
           {todayLabel}
         </Text>
       </Stack>
+
+      {/* Nouvelles réponses entrantes */}
+      {counts.unreadInbox > 0 && (
+        <Card
+          withBorder
+          padding="md"
+          radius="lg"
+          component={Link}
+          href="/inbox"
+          style={{
+            textDecoration: "none",
+            borderColor: "var(--mantine-color-green-6)",
+          }}
+        >
+          <Group gap="sm" wrap="nowrap">
+            <Badge color="green" variant="filled" size="lg">
+              {counts.unreadInbox}
+            </Badge>
+            <Text fw={600} size="sm">
+              {counts.unreadInbox > 1
+                ? "nouvelles réponses à lire"
+                : "nouvelle réponse à lire"}
+            </Text>
+          </Group>
+        </Card>
+      )}
 
       {/* Compteurs rapides */}
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">

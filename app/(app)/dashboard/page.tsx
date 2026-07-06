@@ -29,6 +29,7 @@ export default async function DashboardPage() {
     { count: contactCount },
     { count: activeOppCount },
     { count: overdueCount },
+    { count: unreadInboxCount },
   ] = await Promise.all([
     // À relancer : tâches ouvertes dont l'échéance est passée ou = aujourd'hui.
     supabase
@@ -64,6 +65,12 @@ export default async function DashboardPage() {
       .select("*", { count: "exact", head: true })
       .eq("done", false)
       .lt("due_date", today),
+    // Réponses entrantes non lues.
+    supabase
+      .from("email_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("direction", "inbound")
+      .eq("read", false),
   ]);
 
   const relance: RelanceItem[] = (relanceRows ?? []).map((t) => ({
@@ -104,6 +111,7 @@ export default async function DashboardPage() {
         contacts: contactCount ?? 0,
         activeOpps: activeOppCount ?? 0,
         overdue: overdueCount ?? 0,
+        unreadInbox: unreadInboxCount ?? 0,
       }}
       relance={relance}
       confirmed={confirmed}

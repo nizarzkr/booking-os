@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AppShell,
+  Badge,
   Button,
   Burger,
   Group,
@@ -22,15 +23,18 @@ const NAV_ITEMS = [
   { label: "Organisations", href: "/organizations" },
   { label: "Opportunités", href: "/opportunities" },
   { label: "Tâches", href: "/tasks" },
+  { label: "Réponses", href: "/inbox" },
   { label: "Templates", href: "/templates" },
   { label: "Réglages", href: "/settings" },
 ];
 
 export function AppNav({
   workspaceName,
+  unreadInbox = 0,
   children,
 }: {
   workspaceName: string;
+  unreadInbox?: number;
   children: React.ReactNode;
 }) {
   const [opened, { toggle, close }] = useDisclosure();
@@ -75,6 +79,7 @@ export function AppNav({
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const showBadge = item.href === "/inbox" && unreadInbox > 0;
               return (
                 <NavLink
                   key={item.href}
@@ -84,6 +89,13 @@ export function AppNav({
                   onClick={close}
                   active={active}
                   variant="light"
+                  rightSection={
+                    showBadge ? (
+                      <Badge color="green" variant="filled" size="sm" circle>
+                        {unreadInbox}
+                      </Badge>
+                    ) : undefined
+                  }
                   styles={{ root: { borderRadius: "var(--mantine-radius-md)" } }}
                 />
               );
