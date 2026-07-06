@@ -849,6 +849,33 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ---
 
+## 2026-07-06 (suite) — Étape 8.2 : Polish UX
+
+### Étapes complétées
+- [x] 8.2 — Polish UX. **MVP complet (blocs 0→8.2).**
+
+### Contexte / constat
+- Audit : ~80 % du polish était déjà en place (états vides+CTA, error/not-found, tables `ScrollContainer`, nav burger, pipeline scroll, grilles responsives). Le seul vrai manque : les animations.
+
+### Décisions prises
+- **Animations CSS only** (choix utilisateur), pas de framer-motion → cohérent avec la DA « Studio » sobre, zéro dépendance.
+- **Responsive** : les layouts utilisent déjà les bonnes primitives ; aucun fix nécessaire. Émulation vrai-mobile impossible ici (Chrome clampe la largeur mini de fenêtre) → eyeball délégué au device.
+
+### Ce qui a été mis en place
+- `app/globals.css` : `@keyframes page-enter`, `.interactive-card` (hover bordure+lift, `:focus-visible`), guard `prefers-reduced-motion`.
+- `components/layout/page-transition.tsx` (keyé sur `usePathname`) enroulant le contenu dans `AppShell.Main`.
+- `.interactive-card` sur cartes cliquables (StatCard + bannière dashboard, cartes pipeline, cartes inbox).
+- `components/ui/detail-skeleton.tsx` + `loading.tsx` pour dashboard et fiches `[id]` (contacts/opportunities/organizations).
+- Titres de page uniformisés `order={1}` (settings + import).
+
+### Vérifications
+- `typecheck` + `lint` verts. Non-régression navigateur (dashboard + pipeline rendent proprement, cartes/animations OK).
+
+### État en fin de session
+- **MVP complet (0→8.2).** Reste : 8.1 beta (déploiement Vercel), 8.3 billing Stripe (optionnel).
+
+---
+
 <!-- TEMPLATE — copier-coller pour chaque nouvelle session
 
 ## YYYY-MM-DD — [Titre de la session]
