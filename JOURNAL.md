@@ -876,6 +876,31 @@ Genre musical et objectifs trimstriels : **retirés** de l'onboarding (trop CRM,
 
 ---
 
+## 2026-07-06 (suite) — Étape 8.1 : déploiement Vercel + landing
+
+### Étapes complétées
+- [x] 8.1 — Déploiement prod. **MVP en ligne : https://booking-os-psi.vercel.app**
+- [x] Landing publique avec accès connexion / inscription.
+
+### Ce qui a été fait
+- **Build de prod** validé en local (21 routes, TS OK) avant push.
+- `vercel.json` : cron sur `/api/gmail/sync`. D'abord `*/15 * * * *` → refusé (Hobby limite à 1×/jour) → passé à `0 8 * * *` (quotidien). `CRON_SECRET` injecté en Bearer par Vercel.
+- Import du repo `nizarzkr/booking-os` dans Vercel (auto-deploy sur `main`), env de prod configurées par Nizar : `NEXT_PUBLIC_APP_URL`, `GOOGLE_REDIRECT_URI` (URL prod), redirect URI ajouté côté Google Console, Supabase Site URL.
+- **Landing** (`app/page.tsx`) : remplace « Coming soon » par header (Booking OS + Se connecter `/login` + Créer un compte `/register`) + hero.
+
+### Problème rencontré / solution
+- Landing en Server Component avec `<Button component={Link}>` → `Error: Functions cannot be passed directly to Client Components` (React 19 : passer un composant/fonction d'un Server à un Client Component casse la sérialisation). Le `tsc` ne l'attrape pas mais **le build statique de `/` plantait**. Fix : `component="a"` (navigation pleine page, zéro JS client) — pattern déjà utilisé ailleurs.
+
+### Vérifications
+- Prod : landing + `/login` + `/register` rendent (WebFetch), boutons → `/login` `/register`, aucune erreur serveur.
+- Build prod re-validé après le fix landing.
+
+### État en fin de session
+- **MVP déployé et accessible.** Reste (8.1) : inviter les beta-testeurs (les ajouter en *Test users* Google, app OAuth en mode Testing) + collecte feedback. 8.3 billing Stripe optionnel.
+- Rappels : régénérer `GOOGLE_CLIENT_SECRET` (exposé en session) ; passer l'app Google en *Published* (vérification) si beta > 100 users ou sortie du mode test ; cron 15 min si upgrade Pro.
+
+---
+
 <!-- TEMPLATE — copier-coller pour chaque nouvelle session
 
 ## YYYY-MM-DD — [Titre de la session]
