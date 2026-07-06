@@ -23,6 +23,7 @@ export type SendMessageParams = {
   subject: string;
   body: string;
   threadId?: string;
+  replyTo?: string;
 };
 
 export type SendResult = { id: string; threadId: string };
@@ -33,11 +34,12 @@ export type SendResult = { id: string; threadId: string };
  */
 export async function sendGmailMessage(
   accessToken: string,
-  { from, to, subject, body, threadId }: SendMessageParams,
+  { from, to, subject, body, threadId, replyTo }: SendMessageParams,
 ): Promise<SendResult> {
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
+    ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
     `Subject: ${encodeHeader(subject)}`,
     "MIME-Version: 1.0",
     'Content-Type: text/plain; charset="UTF-8"',

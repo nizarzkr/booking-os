@@ -522,23 +522,29 @@ export type Database = {
         Row: {
           city: string | null
           created_at: string
+          email_signature: string | null
           id: string
           name: string
           owner_id: string
+          reply_to: string | null
         }
         Insert: {
           city?: string | null
           created_at?: string
+          email_signature?: string | null
           id?: string
           name: string
           owner_id: string
+          reply_to?: string | null
         }
         Update: {
           city?: string | null
           created_at?: string
+          email_signature?: string | null
           id?: string
           name?: string
           owner_id?: string
+          reply_to?: string | null
         }
         Relationships: []
       }

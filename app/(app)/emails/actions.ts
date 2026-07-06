@@ -52,13 +52,25 @@ export async function sendEmail(input: SendEmailInput): Promise<ActionResult> {
     };
   }
 
+  // Signature + reply-to configurés dans les réglages (étape 7.2).
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("email_signature, reply_to")
+    .eq("id", profile.workspace_id)
+    .single();
+
+  const signature = ws?.email_signature?.trim();
+  const finalBody = signature ? `${body}\n\n-- \n${signature}` : body;
+  const replyTo = ws?.reply_to?.trim() || undefined;
+
   let sent;
   try {
     sent = await sendGmailMessage(connection.accessToken, {
       from: connection.email,
       to,
       subject,
-      body,
+      body: finalBody,
+      replyTo,
     });
   } catch {
     return { error: "L'envoi a échoué. Réessaie." };

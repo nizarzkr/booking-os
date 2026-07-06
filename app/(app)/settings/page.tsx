@@ -27,7 +27,7 @@ export default async function SettingsPage({
 
   const { data: workspace } = await supabase
     .from("workspaces")
-    .select("name, city")
+    .select("name, city, email_signature, reply_to")
     .eq("id", profile.workspace_id)
     .single();
 
@@ -51,7 +51,12 @@ export default async function SettingsPage({
 
   return (
     <SettingsView
-      workspace={{ name: workspace?.name ?? "", city: workspace?.city ?? null }}
+      workspace={{
+        name: workspace?.name ?? "",
+        city: workspace?.city ?? null,
+        email_signature: workspace?.email_signature ?? null,
+        reply_to: workspace?.reply_to ?? null,
+      }}
       accountEmail={user.email ?? "—"}
       gmail={{
         configured: gmailConfigured,

@@ -23,7 +23,7 @@ import {
 import {
   importContacts,
   type ImportReport,
-} from "@/app/(app)/settings/import/actions";
+} from "@/app/(app)/contacts/import/actions";
 import { EMAIL_RE, type ContactInput } from "@/components/contacts/contact-input";
 
 const MAX_ROWS = 1000;
@@ -169,8 +169,8 @@ export function ContactImporter() {
   return (
     <Stack gap="xl" maw={820}>
       <Group gap="sm">
-        <Anchor component={Link} href="/settings" size="sm" c="dimmed">
-          ← Réglages
+        <Anchor component={Link} href="/contacts" size="sm" c="dimmed">
+          ← Contacts
         </Anchor>
       </Group>
       <Title order={2} fw={400}>

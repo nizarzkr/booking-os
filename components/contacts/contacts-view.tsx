@@ -82,7 +82,12 @@ export function ContactsView({ contacts }: { contacts: Contact[] }) {
         <Text c="dimmed" size="sm">
           {contacts.length} contact{contacts.length > 1 ? "s" : ""}
         </Text>
-        <Button onClick={openCreate}>Ajouter un contact</Button>
+        <Group gap="sm">
+          <Button component={Link} href="/contacts/import" variant="default">
+            Importer un CSV
+          </Button>
+          <Button onClick={openCreate}>Ajouter un contact</Button>
+        </Group>
       </Group>
 
       {contacts.length === 0 ? (

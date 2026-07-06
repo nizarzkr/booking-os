@@ -1,15 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Alert,
   Badge,
   Button,
   Group,
+  Modal,
   Paper,
   Stack,
   Text,
+  Textarea,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -18,6 +20,7 @@ import { notifications } from "@mantine/notifications";
 
 import {
   updateWorkspace,
+  deleteAccount,
   type WorkspaceInput,
 } from "@/app/(app)/settings/actions";
 import { disconnectGmail } from "@/app/(app)/settings/gmail-actions";
@@ -25,7 +28,12 @@ import { disconnectGmail } from "@/app/(app)/settings/gmail-actions";
 type GmailState = { configured: boolean; email: string | null };
 
 type Props = {
-  workspace: { name: string; city: string | null };
+  workspace: {
+    name: string;
+    city: string | null;
+    email_signature: string | null;
+    reply_to: string | null;
+  };
   accountEmail: string;
   gmail: GmailState;
   gmailFlash: string | null;
@@ -53,9 +61,13 @@ export function SettingsView({
   gmail,
   gmailFlash,
 }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [gmailLoading, setGmailLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Notification de retour OAuth, une seule fois.
   const flashed = useRef(false);
@@ -73,9 +85,15 @@ export function SettingsView({
     initialValues: {
       name: workspace.name ?? "",
       city: workspace.city ?? "",
+      email_signature: workspace.email_signature ?? "",
+      reply_to: workspace.reply_to ?? "",
     },
     validate: {
       name: (v) => (v.trim() ? null : "Ce champ est requis."),
+      reply_to: (v) =>
+        !v.trim() || /^\S+@\S+\.\S+$/.test(v.trim())
+          ? null
+          : "Adresse email invalide.",
     },
   });
 
@@ -104,7 +122,21 @@ export function SettingsView({
     notifications.show({ color: "green", message: "Gmail déconnecté." });
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    const result = await deleteAccount(deleteConfirm);
+    if ("error" in result) {
+      setDeleteLoading(false);
+      notifications.show({ color: "red", message: result.error });
+      return;
+    }
+    // Compte supprimé : session invalidée → retour à l'accueil public.
+    notifications.show({ color: "green", message: "Compte supprimé." });
+    router.replace("/");
+  };
+
   const isConnected = gmail.email !== null;
+  const canDelete = deleteConfirm.trim() === workspace.name.trim();
 
   return (
     <Stack gap="xl" maw={640}>
@@ -141,6 +173,21 @@ export function SettingsView({
               key={form.key("city")}
               {...form.getInputProps("city")}
             />
+            <TextInput
+              label="Adresse de réponse (reply-to)"
+              placeholder="Optionnel — où recevoir les réponses"
+              description="Si renseigné, les réponses arriveront à cette adresse plutôt qu'à ta boîte Gmail d'envoi."
+              key={form.key("reply_to")}
+              {...form.getInputProps("reply_to")}
+            />
+            <Textarea
+              label="Signature"
+              placeholder={"Optionnel — ajoutée en bas de tes emails\nEx. : Nom, téléphone, liens…"}
+              autosize
+              minRows={3}
+              key={form.key("email_signature")}
+              {...form.getInputProps("email_signature")}
+            />
 
             <Group justify="flex-end">
               <Button type="submit" loading={loading}>
@@ -149,21 +196,6 @@ export function SettingsView({
             </Group>
           </Stack>
         </form>
-      </Paper>
-
-      {/* Import de contacts */}
-      <Paper p="lg" radius="lg" withBorder>
-        <Group justify="space-between">
-          <Stack gap={2}>
-            <Text fw={600}>Importer des contacts</Text>
-            <Text c="dimmed" size="sm">
-              Ajoute ta liste existante depuis un fichier CSV.
-            </Text>
-          </Stack>
-          <Button component={Link} href="/settings/import" variant="default">
-            Importer un CSV
-          </Button>
-        </Group>
       </Paper>
 
       {/* Compte */}
@@ -247,6 +279,68 @@ export function SettingsView({
           )}
         </Stack>
       </Paper>
+
+      {/* Zone de danger — suppression de compte */}
+      <Paper p="lg" radius="lg" withBorder style={{ borderColor: "var(--mantine-color-red-8)" }}>
+        <Group justify="space-between" align="center">
+          <Stack gap={2}>
+            <Text fw={600} c="red.4">
+              Supprimer le compte
+            </Text>
+            <Text c="dimmed" size="sm">
+              Efface définitivement ton espace et toutes tes données (contacts,
+              opportunités, tâches, emails). Irréversible.
+            </Text>
+          </Stack>
+          <Button color="red" variant="light" onClick={() => setDeleteOpen(true)}>
+            Supprimer
+          </Button>
+        </Group>
+      </Paper>
+
+      <Modal
+        opened={deleteOpen}
+        onClose={() => {
+          setDeleteOpen(false);
+          setDeleteConfirm("");
+        }}
+        title="Supprimer définitivement le compte"
+        centered
+      >
+        <Stack gap="md">
+          <Alert color="red" variant="light" radius="md">
+            Cette action est <strong>irréversible</strong>. Toutes tes données
+            seront effacées et ne pourront pas être récupérées.
+          </Alert>
+          <TextInput
+            label={`Tape le nom de ton espace pour confirmer : « ${workspace.name} »`}
+            placeholder={workspace.name}
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.currentTarget.value)}
+            data-autofocus
+          />
+          <Group justify="flex-end">
+            <Button
+              variant="default"
+              color="gray"
+              onClick={() => {
+                setDeleteOpen(false);
+                setDeleteConfirm("");
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              color="red"
+              disabled={!canDelete}
+              loading={deleteLoading}
+              onClick={handleDeleteAccount}
+            >
+              Supprimer définitivement
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }
