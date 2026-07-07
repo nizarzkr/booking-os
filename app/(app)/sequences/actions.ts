@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processEnrollment } from "@/lib/sequences/run";
+import { SEQUENCE_BLUEPRINTS } from "@/components/sequences/sequence-blueprints";
 import type { Database } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -56,6 +57,49 @@ export async function createSequence(name: string): Promise<CreateResult> {
 
   revalidatePath("/outreach");
   return { ok: true, id: data.id };
+}
+
+/**
+ * Clone un modèle de la bibliothèque dans les séquences du workspace :
+ * crée la séquence + ses étapes (step_order contigu 0..n), prête à éditer.
+ */
+export async function createSequenceFromBlueprint(
+  blueprintId: string,
+): Promise<CreateResult> {
+  const blueprint = SEQUENCE_BLUEPRINTS.find((b) => b.id === blueprintId);
+  if (!blueprint) return { error: "Modèle introuvable." };
+
+  const supabase = await createClient();
+  const workspace_id = await getWorkspaceId(supabase);
+  if (!workspace_id) return { error: "Session invalide. Reconnecte-toi." };
+
+  const { data: seq, error: seqError } = await supabase
+    .from("sequences")
+    .insert({ workspace_id, name: blueprint.name })
+    .select("id")
+    .single();
+  if (seqError || !seq) {
+    return { error: "Impossible de créer la séquence. Réessaie." };
+  }
+
+  const { error: stepsError } = await supabase.from("sequence_steps").insert(
+    blueprint.steps.map((step, i) => ({
+      workspace_id,
+      sequence_id: seq.id,
+      step_order: i,
+      delay_days: step.delay_days,
+      subject: step.subject,
+      body: step.body,
+    })),
+  );
+  if (stepsError) {
+    // Best-effort : évite une séquence orpheline sans étapes.
+    await supabase.from("sequences").delete().eq("id", seq.id);
+    return { error: "Impossible de créer les étapes du modèle. Réessaie." };
+  }
+
+  revalidatePath("/outreach");
+  return { ok: true, id: seq.id };
 }
 
 export async function renameSequence(

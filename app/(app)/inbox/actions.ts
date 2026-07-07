@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { syncInboundForWorkspace } from "@/lib/gmail/receive";
+import { syncInboundForWorkspace } from "@/lib/email/receive";
 
 export type SyncResult = { error: string } | { inserted: number };
 
@@ -29,10 +29,10 @@ export async function syncInbox(): Promise<SyncResult> {
   const result = await syncInboundForWorkspace(workspaceId);
   if ("error" in result) {
     if (result.error === "no_connection") {
-      return { error: "Connecte ta boîte Gmail dans les réglages." };
+      return { error: "Connecte ta boîte mail dans les réglages." };
     }
     if (result.error === "not_configured") {
-      return { error: "Intégration Gmail non configurée côté serveur." };
+      return { error: "Connexion email non configurée côté serveur." };
     }
     return { error: "La synchronisation a échoué. Réessaie." };
   }

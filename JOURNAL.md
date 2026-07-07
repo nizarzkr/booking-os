@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-07-07 (suite) — Modèles de séquences + Aide/Démarrage + email IMAP/SMTP
+
+### Étapes complétées
+- [x] **Bibliothèque de modèles de séquences** : galerie « Partir d'un modèle » (5 séquences prêtes : salle, festival, reprise de contact, presse/radio, réchauffage) → clone dans les séquences de l'artiste, à personnaliser. `components/sequences/sequence-blueprints.ts` (données) + `blueprint-gallery.tsx` + action `createSequenceFromBlueprint`.
+- [x] **Système d'Aide contextuelle** : bouton « ? » dans le header (monté une fois) → Drawer avec contenu par page (À quoi sert / Comment faire / Conseils) pour les 8 pages. `components/help/help-content.ts` + `help-drawer.tsx`.
+- [x] **Checklist « Démarrage »** sur le Dashboard (état réel : mail connecté / contacts / séquence ; se masque une fois complète). `components/dashboard/getting-started.tsx`.
+- [x] **Connexion email hors-Google (IMAP/SMTP universel) + tutoriel intégré.**
+
+### Email IMAP/SMTP — détail
+- Table `email_accounts` (migration `20260707120000`, verrouillée service_role, un compte/workspace). Mot de passe **chiffré AES-256-GCM** (`lib/email/crypto.ts`, clé `EMAIL_ENCRYPTION_KEY`).
+- Couche d'abstraction `lib/email/` : `getMailConnection` (Gmail prioritaire, sinon IMAP/SMTP), `sendMail` (nodemailer SMTP), `syncInboundForWorkspace` dispatcher + `syncImapInbound` (imapflow + mailparser). Détection de réponse via `In-Reply-To`/`References` contre nos `Message-ID` sortants (stockés dans `email_logs.gmail_message_id`) → alimente la coupure-sur-réponse.
+- Rebranché : `emails/actions.ts`, `sequences/run.ts`, `inbox/actions.ts`, cron `/api/gmail/sync` (parcourt désormais `gmail_tokens ∪ email_accounts`).
+- Presets Gmail/Outlook/Yahoo/iCloud/Autre + instructions mot de passe d'application (`lib/email/providers.ts`). UI : bloc Réglages + `EmailConnectModal` (test SMTP **et** IMAP avant enregistrement). `serverExternalPackages` pour les libs mail.
+
+### Décisions
+- Modèles de séquences = **blueprints en code** clonés à la demande (pas de seed par workspace → ne pollue pas la liste).
+- Aide = **contenu statique curé** (pas d'IA) rendu dans un Drawer global piloté par `usePathname`.
+- Email : **une seule méthode d'envoi par workspace** ; Gmail prioritaire, connexion IMAP refusée si Google déjà connecté (message clair). IMAP/SMTP permet aussi aux Gmail de contourner la vérif Google via mot de passe d'application.
+
+### Vérifications
+- typecheck ✅ · lint ✅ · build de prod ✅. `EMAIL_ENCRYPTION_KEY` générée en local + ajoutée sur Vercel.
+- npm audit : 2 « moderate » **préexistantes** (postcss via Next), rien ajouté par les libs mail.
+- ⏳ Test E2E de la connexion IMAP/SMTP sur vraie boîte : validé par Nizar en local (« tout fonctionne »).
+
+### État en fin de session
+- Prêt à déployer (commit + push → Vercel). Ensuite : inviter les beta-testeurs.
+
+---
+
 ## 2026-07-07 — Validation E2E de la refonte (A→F) + merge en prod
 
 ### Étapes complétées

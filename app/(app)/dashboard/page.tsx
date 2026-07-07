@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fullName } from "@/components/contacts/roles";
 import { todayISO, isoInDays, todayLabelFr } from "@/lib/utils/date";
 import {
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
     { count: activeOppCount },
     { count: overdueCount },
     { count: unreadInboxCount },
+    { count: sequenceCount },
   ] = await Promise.all([
     // À relancer : tâches ouvertes dont l'échéance est passée ou = aujourd'hui.
     supabase
@@ -71,7 +73,37 @@ export default async function DashboardPage() {
       .select("*", { count: "exact", head: true })
       .eq("direction", "inbound")
       .eq("read", false),
+    // Séquences existantes (checklist Démarrage).
+    supabase.from("sequences").select("*", { count: "exact", head: true }),
   ]);
+
+  // État de configuration pour la checklist « Démarrage ».
+  // La connexion mail vit dans `gmail_tokens` (verrouillée service_role) →
+  // besoin du workspace_id + client admin. Best-effort : « non connecté » si KO.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let mailConnected = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("workspace_id")
+      .eq("id", user.id)
+      .single();
+    if (profile?.workspace_id) {
+      try {
+        const admin = createAdminClient();
+        const { data: token } = await admin
+          .from("gmail_tokens")
+          .select("id")
+          .eq("workspace_id", profile.workspace_id)
+          .maybeSingle();
+        mailConnected = token !== null;
+      } catch {
+        mailConnected = false;
+      }
+    }
+  }
 
   const relance: RelanceItem[] = (relanceRows ?? []).map((t) => ({
     id: t.id,
@@ -116,6 +148,11 @@ export default async function DashboardPage() {
       relance={relance}
       confirmed={confirmed}
       options={options}
+      setup={{
+        mailConnected,
+        hasContacts: (contactCount ?? 0) > 0,
+        hasSequence: (sequenceCount ?? 0) > 0,
+      }}
     />
   );
 }

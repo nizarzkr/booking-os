@@ -1,8 +1,8 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getGmailConnection } from "@/lib/gmail/client";
-import { sendGmailMessage } from "@/lib/gmail/send";
+import { getMailConnection } from "@/lib/email/connection";
+import { sendMail } from "@/lib/email/send";
 import { renderTemplate } from "@/components/templates/template-types";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -93,8 +93,9 @@ export async function processEnrollment(
     return "stopped_no_email";
   }
 
-  // 4. Connexion Gmail : si absente, on laisse l'enrollment en l'état (retry).
-  const connection = await getGmailConnection(enr.workspace_id);
+  // 4. Connexion mail (Gmail ou IMAP/SMTP) : si absente, on laisse
+  // l'enrollment en l'état (retry au prochain passage).
+  const connection = await getMailConnection(enr.workspace_id);
   if (!connection) return "skipped_no_gmail";
 
   // 5. Workspace : nom d'artiste (variable) + signature + reply-to.
@@ -120,8 +121,7 @@ export async function processEnrollment(
 
   let sent;
   try {
-    sent = await sendGmailMessage(connection.accessToken, {
-      from: connection.email,
+    sent = await sendMail(connection, {
       to,
       subject,
       body: finalBody,
@@ -132,14 +132,15 @@ export async function processEnrollment(
     return "stopped_send_failed";
   }
 
-  // Journalisation (outbound) — permet la détection des réponses (thread connu).
+  // Journalisation (outbound) — permet la détection des réponses (Message-ID
+  // pour IMAP, thread pour Gmail).
   await admin.from("email_logs").insert({
     workspace_id: enr.workspace_id,
     contact_id: enr.contact_id,
     subject,
     body: renderedBody,
     direction: "outbound",
-    gmail_message_id: sent.id,
+    gmail_message_id: sent.messageId,
     gmail_thread_id: sent.threadId,
     read: true,
   });

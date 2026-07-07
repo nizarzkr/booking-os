@@ -18,6 +18,7 @@ import { notifications } from "@mantine/notifications";
 
 import { createSequence } from "@/app/(app)/sequences/actions";
 import { type SequenceListItem } from "@/components/sequences/sequence-types";
+import { BlueprintGallery } from "@/components/sequences/blueprint-gallery";
 
 export function SequencesList({
   sequences,
@@ -26,6 +27,7 @@ export function SequencesList({
 }) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [name, setName] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -48,7 +50,12 @@ export function SequencesList({
         <Text c="dimmed" size="sm">
           {sequences.length} séquence{sequences.length > 1 ? "s" : ""}
         </Text>
-        <Button onClick={() => setCreateOpen(true)}>Nouvelle séquence</Button>
+        <Group gap="xs">
+          <Button variant="default" onClick={() => setGalleryOpen(true)}>
+            Partir d&apos;un modèle
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>Nouvelle séquence</Button>
+        </Group>
       </Group>
 
       {sequences.length === 0 ? (
@@ -59,9 +66,12 @@ export function SequencesList({
             puis enrôle des contacts : les emails partent tout seuls et
             s&apos;arrêtent dès qu&apos;on te répond.
           </Text>
-          <Button onClick={() => setCreateOpen(true)} mt="sm">
-            Nouvelle séquence
-          </Button>
+          <Group gap="xs" mt="sm">
+            <Button variant="default" onClick={() => setGalleryOpen(true)}>
+              Partir d&apos;un modèle
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>Nouvelle séquence</Button>
+          </Group>
         </Stack>
       ) : (
         <Stack gap="sm">
@@ -93,6 +103,11 @@ export function SequencesList({
           ))}
         </Stack>
       )}
+
+      <BlueprintGallery
+        opened={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
 
       <Modal
         opened={createOpen}

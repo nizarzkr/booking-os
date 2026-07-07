@@ -1,7 +1,3 @@
-// Types générés depuis le schéma Supabase (étape 0.2).
-// Régénérer après un changement de schéma : `npm run db:types`
-// (ou via le MCP Supabase `generate_typescript_types`).
-
 export type Json =
   | string
   | number
@@ -169,6 +165,65 @@ export type Database = {
             foreignKeyName: "contacts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_accounts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          imap_host: string
+          imap_port: number
+          imap_secure: boolean
+          last_synced_at: string | null
+          password_encrypted: string
+          smtp_host: string
+          smtp_port: number
+          smtp_secure: boolean
+          updated_at: string
+          username: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          imap_host: string
+          imap_port: number
+          imap_secure?: boolean
+          last_synced_at?: string | null
+          password_encrypted: string
+          smtp_host: string
+          smtp_port: number
+          smtp_secure?: boolean
+          updated_at?: string
+          username: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          imap_host?: string
+          imap_port?: number
+          imap_secure?: boolean
+          last_synced_at?: string | null
+          password_encrypted?: string
+          smtp_host?: string
+          smtp_port?: number
+          smtp_secure?: boolean
+          updated_at?: string
+          username?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },

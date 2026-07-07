@@ -18,6 +18,10 @@ import {
   STATUS_META,
 } from "@/components/opportunities/opportunity-types";
 import { dueMeta, formatDueDate } from "@/components/tasks/task-types";
+import {
+  GettingStarted,
+  type SetupState,
+} from "@/components/dashboard/getting-started";
 
 export type RelanceItem = {
   id: string;
@@ -49,6 +53,7 @@ type Props = {
   relance: RelanceItem[];
   confirmed: ConfirmedItem[];
   options: OptionItem[];
+  setup: SetupState;
 };
 
 export function DashboardView({
@@ -57,6 +62,7 @@ export function DashboardView({
   relance,
   confirmed,
   options,
+  setup,
 }: Props) {
   return (
     <Stack gap="lg">
@@ -66,6 +72,9 @@ export function DashboardView({
           {todayLabel}
         </Text>
       </Stack>
+
+      {/* Démarrage (masqué une fois les 3 étapes faites) */}
+      <GettingStarted setup={setup} />
 
       {/* Nouvelles réponses entrantes */}
       {counts.unreadInbox > 0 && (

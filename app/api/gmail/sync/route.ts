@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { syncInboundForWorkspace } from "@/lib/gmail/receive";
+import {
+  syncInboundForWorkspace,
+  listConnectedWorkspaceIds,
+} from "@/lib/email/receive";
 
 /**
  * Récupération inbound pour TOUS les workspaces connectés.
@@ -21,21 +24,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let admin;
+  // Vérifie que le service_role est configuré (le dispatcher en dépend).
   try {
-    admin = createAdminClient();
+    createAdminClient();
   } catch {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 
-  const { data: tokens } = await admin
-    .from("gmail_tokens")
-    .select("workspace_id");
+  const workspaceIds = await listConnectedWorkspaceIds();
 
   let inserted = 0;
   let workspaces = 0;
-  for (const t of tokens ?? []) {
-    const result = await syncInboundForWorkspace(t.workspace_id);
+  for (const workspaceId of workspaceIds) {
+    const result = await syncInboundForWorkspace(workspaceId);
     workspaces += 1;
     if ("inserted" in result) inserted += result.inserted;
   }

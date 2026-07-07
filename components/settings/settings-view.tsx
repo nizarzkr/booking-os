@@ -24,8 +24,11 @@ import {
   type WorkspaceInput,
 } from "@/app/(app)/settings/actions";
 import { disconnectGmail } from "@/app/(app)/settings/gmail-actions";
+import { disconnectEmailAccount } from "@/app/(app)/settings/email-actions";
+import { EmailConnectModal } from "@/components/settings/email-connect-modal";
 
 type GmailState = { configured: boolean; email: string | null };
+type EmailAccountState = { configured: boolean; email: string | null };
 
 type Props = {
   workspace: {
@@ -36,6 +39,7 @@ type Props = {
   };
   accountEmail: string;
   gmail: GmailState;
+  emailAccount: EmailAccountState;
   gmailFlash: string | null;
 };
 
@@ -59,12 +63,15 @@ export function SettingsView({
   workspace,
   accountEmail,
   gmail,
+  emailAccount,
   gmailFlash,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [gmailLoading, setGmailLoading] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -135,7 +142,20 @@ export function SettingsView({
     router.replace("/");
   };
 
+  const handleDisconnectEmail = async () => {
+    setEmailLoading(true);
+    const result = await disconnectEmailAccount();
+    setEmailLoading(false);
+    if ("error" in result) {
+      notifications.show({ color: "red", message: result.error });
+      return;
+    }
+    notifications.show({ color: "green", message: "Adresse déconnectée." });
+    router.refresh();
+  };
+
   const isConnected = gmail.email !== null;
+  const isEmailConnected = emailAccount.email !== null;
   const canDelete = deleteConfirm.trim() === workspace.name.trim();
 
   return (
@@ -278,6 +298,71 @@ export function SettingsView({
         </Stack>
       </Paper>
 
+      {/* Intégrations — Autre adresse (IMAP/SMTP) */}
+      <Paper p="lg" radius="lg" withBorder>
+        <Stack gap="md">
+          <Stack gap={2}>
+            <Text fw={600}>Autre adresse (Outlook, Yahoo, iCloud…)</Text>
+            <Text c="dimmed" size="sm">
+              Pas de compte Google ? Connecte n&apos;importe quelle boîte via
+              IMAP/SMTP avec un mot de passe d&apos;application.
+            </Text>
+          </Stack>
+
+          <Group justify="space-between">
+            <Group gap="sm">
+              <Text fw={500}>Adresse email</Text>
+              {isEmailConnected ? (
+                <Badge color="green" variant="light">
+                  {emailAccount.email}
+                </Badge>
+              ) : (
+                <Badge color="gray" variant="light">
+                  Non connectée
+                </Badge>
+              )}
+            </Group>
+
+            {isEmailConnected ? (
+              <Button
+                variant="default"
+                color="gray"
+                loading={emailLoading}
+                onClick={handleDisconnectEmail}
+              >
+                Déconnecter
+              </Button>
+            ) : isConnected ? (
+              <Button variant="default" disabled>
+                Google déjà connecté
+              </Button>
+            ) : emailAccount.configured ? (
+              <Button onClick={() => setEmailModalOpen(true)}>
+                Connecter une adresse
+              </Button>
+            ) : (
+              <Button variant="default" disabled>
+                Non configuré
+              </Button>
+            )}
+          </Group>
+
+          {isConnected && !isEmailConnected && (
+            <Text c="dimmed" size="xs">
+              Une seule méthode d&apos;envoi à la fois. Déconnecte Google
+              ci-dessus pour utiliser une autre adresse.
+            </Text>
+          )}
+
+          {!emailAccount.configured && !isEmailConnected && !isConnected && (
+            <Text c="dimmed" size="xs">
+              Ajoute <code>EMAIL_ENCRYPTION_KEY</code> dans{" "}
+              <code>.env.local</code> pour activer la connexion IMAP/SMTP.
+            </Text>
+          )}
+        </Stack>
+      </Paper>
+
       {/* Zone de danger — suppression de compte */}
       <Paper p="lg" radius="lg" withBorder style={{ borderColor: "var(--mantine-color-red-8)" }}>
         <Group justify="space-between" align="center">
@@ -295,6 +380,11 @@ export function SettingsView({
           </Button>
         </Group>
       </Paper>
+
+      <EmailConnectModal
+        opened={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+      />
 
       <Modal
         opened={deleteOpen}

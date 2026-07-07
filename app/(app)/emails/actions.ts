@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { getGmailConnection } from "@/lib/gmail/client";
-import { sendGmailMessage } from "@/lib/gmail/send";
+import { getMailConnection } from "@/lib/email/connection";
+import { sendMail } from "@/lib/email/send";
 
 export type SendEmailInput = {
   to: string;
@@ -45,10 +45,10 @@ export async function sendEmail(input: SendEmailInput): Promise<ActionResult> {
     .single();
   if (!profile?.workspace_id) return { error: "Aucun espace de travail." };
 
-  const connection = await getGmailConnection(profile.workspace_id);
+  const connection = await getMailConnection(profile.workspace_id);
   if (!connection) {
     return {
-      error: "Connecte ta boîte Gmail dans les réglages pour envoyer un email.",
+      error: "Connecte ta boîte mail dans les réglages pour envoyer un email.",
     };
   }
 
@@ -65,8 +65,7 @@ export async function sendEmail(input: SendEmailInput): Promise<ActionResult> {
 
   let sent;
   try {
-    sent = await sendGmailMessage(connection.accessToken, {
-      from: connection.email,
+    sent = await sendMail(connection, {
       to,
       subject,
       body: finalBody,
@@ -77,6 +76,8 @@ export async function sendEmail(input: SendEmailInput): Promise<ActionResult> {
   }
 
   // Journalisation (best-effort : l'email est parti, on ne bloque pas dessus).
+  // `gmail_message_id` = Message-ID (Gmail ou SMTP) → sert à la détection de
+  // réponse. `gmail_thread_id` reste null hors Gmail.
   await supabase.from("email_logs").insert({
     workspace_id: profile.workspace_id,
     contact_id: input.contactId,
@@ -84,7 +85,7 @@ export async function sendEmail(input: SendEmailInput): Promise<ActionResult> {
     subject,
     body,
     direction: "outbound",
-    gmail_message_id: sent.id,
+    gmail_message_id: sent.messageId,
     gmail_thread_id: sent.threadId,
     read: true,
   });

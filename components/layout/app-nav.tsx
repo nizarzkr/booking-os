@@ -16,6 +16,7 @@ import { useDisclosure } from "@mantine/hooks";
 
 import { logout } from "@/app/(auth)/actions";
 import { PageTransition } from "@/components/layout/page-transition";
+import { HelpDrawer } from "@/components/help/help-drawer";
 
 type NavItem = { label: string; href: string };
 type NavSection = { title: string | null; items: NavItem[] };
@@ -74,11 +75,19 @@ export function AppNav({
       padding="lg"
     >
       <AppShell.Header bg={surface}>
-        <Group h="100%" px="md" gap="sm">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Text fw={600} fz="sm" style={{ letterSpacing: "-0.01em" }}>
-            Booking OS
-          </Text>
+        <Group h="100%" px="md" gap="sm" justify="space-between" wrap="nowrap">
+          <Group gap="sm" wrap="nowrap">
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              hiddenFrom="sm"
+              size="sm"
+            />
+            <Text fw={600} fz="sm" style={{ letterSpacing: "-0.01em" }}>
+              Booking OS
+            </Text>
+          </Group>
+          <HelpDrawer />
         </Group>
       </AppShell.Header>
 

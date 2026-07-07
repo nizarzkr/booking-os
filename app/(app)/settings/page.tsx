@@ -35,17 +35,30 @@ export default async function SettingsPage({
   // Si la clé service_role n'est pas configurée, on retombe sur « non connecté ».
   const gmailConfigured = getGoogleOAuthConfig() !== null;
   let gmailEmail: string | null = null;
+  let imapEmail: string | null = null;
   try {
     const admin = createAdminClient();
-    const { data } = await admin
-      .from("gmail_tokens")
-      .select("email")
-      .eq("workspace_id", profile.workspace_id)
-      .maybeSingle();
-    gmailEmail = data?.email ?? null;
+    const [{ data: gmailData }, { data: imapData }] = await Promise.all([
+      admin
+        .from("gmail_tokens")
+        .select("email")
+        .eq("workspace_id", profile.workspace_id)
+        .maybeSingle(),
+      admin
+        .from("email_accounts")
+        .select("email")
+        .eq("workspace_id", profile.workspace_id)
+        .maybeSingle(),
+    ]);
+    gmailEmail = gmailData?.email ?? null;
+    imapEmail = imapData?.email ?? null;
   } catch {
     gmailEmail = null;
+    imapEmail = null;
   }
+
+  // La connexion IMAP/SMTP nécessite la clé de chiffrement côté serveur.
+  const imapConfigured = Boolean(process.env.EMAIL_ENCRYPTION_KEY);
 
   const { gmail: gmailFlash } = await searchParams;
 
@@ -61,6 +74,10 @@ export default async function SettingsPage({
       gmail={{
         configured: gmailConfigured,
         email: gmailEmail,
+      }}
+      emailAccount={{
+        configured: imapConfigured,
+        email: imapEmail,
       }}
       gmailFlash={gmailFlash ?? null}
     />
