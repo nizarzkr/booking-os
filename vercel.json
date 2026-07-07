@@ -4,6 +4,10 @@
     {
       "path": "/api/gmail/sync",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/sequences/run",
+      "schedule": "0 9 * * *"
     }
   ]
 }

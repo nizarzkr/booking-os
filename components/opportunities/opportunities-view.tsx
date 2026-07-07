@@ -11,6 +11,7 @@ import {
   Group,
   Menu,
   Modal,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -24,6 +25,8 @@ import {
   type ContactOption,
   type OrganizationOption,
 } from "@/components/opportunities/opportunity-form-modal";
+import { PipelineView } from "@/components/opportunities/pipeline-view";
+import { OpportunityCalendar } from "@/components/opportunities/opportunity-calendar";
 import {
   formatFee,
   formatGigDate,
@@ -37,17 +40,34 @@ export type OpportunityListItem = Opportunity & {
   organization_name: string | null;
 };
 
+export type DatesViewMode = "kanban" | "list" | "calendar";
+
 type Props = {
   opportunities: OpportunityListItem[];
   contactOptions: ContactOption[];
   organizationOptions: OrganizationOption[];
+  initialView?: DatesViewMode;
 };
 
 export function OpportunitiesView({
   opportunities,
   contactOptions,
   organizationOptions,
+  initialView = "kanban",
 }: Props) {
+  const [view, setView] = useState<DatesViewMode>(initialView);
+
+  // On synchronise l'URL (?view=…) sans refetch : l'état local reste la source
+  // de vérité, mais la vue courante devient partageable / persistante au reload.
+  function changeView(next: DatesViewMode) {
+    setView(next);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?view=${next}`,
+    );
+  }
+
   const router = useRouter();
 
   const [search, setSearch] = useState("");
@@ -102,24 +122,40 @@ export function OpportunitiesView({
   return (
     <>
       <Group justify="space-between" align="center" mb="lg">
-        <Text c="dimmed" size="sm">
-          {opportunities.length} opportunité
-          {opportunities.length > 1 ? "s" : ""}
-        </Text>
-        <Button onClick={openCreate}>Ajouter une opportunité</Button>
+        {opportunities.length > 0 ? (
+          <SegmentedControl
+            value={view}
+            onChange={(v) => changeView(v as DatesViewMode)}
+            data={[
+              { label: "Kanban", value: "kanban" },
+              { label: "Liste", value: "list" },
+              { label: "Calendrier", value: "calendar" },
+            ]}
+          />
+        ) : (
+          <Text c="dimmed" size="sm">
+            {opportunities.length} date
+            {opportunities.length > 1 ? "s" : ""}
+          </Text>
+        )}
+        <Button onClick={openCreate}>Ajouter une date</Button>
       </Group>
 
       {opportunities.length === 0 ? (
         <Stack align="center" gap="xs" py={64}>
-          <Text fw={700}>Aucune opportunité pour l&apos;instant</Text>
+          <Text fw={700}>Aucune date pour l&apos;instant</Text>
           <Text c="dimmed" size="sm" ta="center" maw={380}>
-            Crée ta première opportunité pour suivre une piste de date, de la
-            prise de contact jusqu&apos;au concert confirmé.
+            Crée ta première date pour suivre une piste de concert, de la prise
+            de contact jusqu&apos;au concert confirmé.
           </Text>
           <Button onClick={openCreate} mt="sm">
-            Ajouter une opportunité
+            Ajouter une date
           </Button>
         </Stack>
+      ) : view === "kanban" ? (
+        <PipelineView opportunities={opportunities} />
+      ) : view === "calendar" ? (
+        <OpportunityCalendar opportunities={opportunities} />
       ) : (
         <Stack gap="md">
           <Group>
@@ -140,7 +176,7 @@ export function OpportunitiesView({
 
           {filtered.length === 0 ? (
             <Text c="dimmed" size="sm" py="xl" ta="center">
-              Aucune opportunité ne correspond à ta recherche.
+              Aucune date ne correspond à ta recherche.
             </Text>
           ) : (
             <Table.ScrollContainer minWidth={760}>
@@ -262,7 +298,7 @@ export function OpportunitiesView({
       <Modal
         opened={deleting !== null}
         onClose={() => setDeleting(null)}
-        title="Supprimer l'opportunité"
+        title="Supprimer la date"
         centered
       >
         <form

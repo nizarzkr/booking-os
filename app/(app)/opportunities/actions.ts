@@ -185,7 +185,6 @@ export async function setOpportunityStatus(
   // Sync agenda : option→jaune, confirmed→vert, autre→suppression.
   await syncOpportunityCalendar(workspace_id, id);
 
-  revalidatePath("/pipeline");
   revalidatePath("/opportunities");
   revalidatePath(`/opportunities/${id}`);
   revalidatePath("/dashboard");

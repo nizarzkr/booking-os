@@ -32,6 +32,8 @@ import { fullName, ROLE_META, type Contact } from "@/components/contacts/roles";
 import { ORG_TYPE_META, type Organization } from "@/components/organizations/org-types";
 import { TaskSection } from "@/components/tasks/task-section";
 import { type Task } from "@/components/tasks/task-types";
+import { EnrollToSequenceModal } from "@/components/sequences/enroll-to-sequence-modal";
+import { type Sequence } from "@/components/sequences/sequence-types";
 
 function notifyError(message: string) {
   notifications.show({ color: "red", message });
@@ -45,6 +47,7 @@ type Props = {
   templates: EmailTemplate[];
   artistName: string;
   emailLogs: EmailLog[];
+  sequences: Sequence[];
 };
 
 export function ContactDetail({
@@ -55,11 +58,13 @@ export function ContactDetail({
   templates,
   artistName,
   emailLogs,
+  sequences,
 }: Props) {
   const router = useRouter();
 
   const [editOpen, setEditOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
@@ -121,6 +126,9 @@ export function ContactDetail({
           {contact.email && (
             <Button onClick={() => setEmailOpen(true)}>Envoyer un email</Button>
           )}
+          <Button variant="default" onClick={() => setEnrollOpen(true)}>
+            Ajouter à une séquence
+          </Button>
           <Button variant="default" onClick={() => setEditOpen(true)}>
             Modifier
           </Button>
@@ -283,6 +291,14 @@ export function ContactDetail({
           vars={{ contact_name: fullName(contact), artist_name: artistName }}
           contactId={contact.id}
           opportunityId={null}
+        />
+      )}
+
+      {enrollOpen && (
+        <EnrollToSequenceModal
+          contactId={contact.id}
+          sequences={sequences}
+          onClose={() => setEnrollOpen(false)}
         />
       )}
 

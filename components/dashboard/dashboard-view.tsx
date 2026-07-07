@@ -74,7 +74,7 @@ export function DashboardView({
           padding="md"
           radius="lg"
           component={Link}
-          href="/inbox"
+          href="/outreach?tab=inbox"
           className="interactive-card"
           style={{
             textDecoration: "none",

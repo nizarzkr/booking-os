@@ -45,7 +45,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = pathname === "/login" || pathname === "/register";
   // La route cron s'authentifie par `CRON_SECRET` (pas de session) : elle ne
   // doit pas être redirigée vers /login par la garde.
-  const isCronRoute = pathname === "/api/gmail/sync";
+  const isCronRoute =
+    pathname === "/api/gmail/sync" || pathname === "/api/sequences/run";
   const isPublicRoute =
     pathname === "/" ||
     isAuthRoute ||

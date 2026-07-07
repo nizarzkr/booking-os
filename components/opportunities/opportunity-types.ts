@@ -27,10 +27,10 @@ export const STATUS_META: Record<
   OpportunityStatus,
   { label: string; color: string }
 > = {
-  prospect: { label: "Prospect", color: "gray" },
+  prospect: { label: "À contacter", color: "gray" },
   contacted: { label: "Contacté", color: "blue" },
-  negotiation: { label: "Négociation", color: "yellow" },
-  option: { label: "Option", color: "violet" },
+  negotiation: { label: "En discussion", color: "yellow" },
+  option: { label: "Pré-réservé", color: "violet" },
   confirmed: { label: "Confirmé", color: "green" },
   cancelled: { label: "Annulé", color: "red" },
 };

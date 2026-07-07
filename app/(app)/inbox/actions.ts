@@ -38,7 +38,7 @@ export async function syncInbox(): Promise<SyncResult> {
   }
 
   if (result.inserted > 0) {
-    revalidatePath("/inbox");
+    revalidatePath("/outreach");
     revalidatePath("/dashboard");
   }
   return { inserted: result.inserted };
@@ -59,6 +59,6 @@ export async function markAllInboundRead(): Promise<void> {
     .eq("direction", "inbound")
     .eq("read", false);
 
-  revalidatePath("/inbox");
+  revalidatePath("/outreach");
   revalidatePath("/dashboard");
 }

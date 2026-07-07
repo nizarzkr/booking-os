@@ -47,14 +47,14 @@ export function OrganizationDetail({ organization, linkedContacts }: Props) {
         notifications.show({ color: "red", message: res.error });
         return;
       }
-      router.push("/organizations");
+      router.push("/contacts?tab=places");
     });
   }
 
   return (
     <Stack gap="lg">
-      <Anchor component={Link} href="/organizations" size="sm" c="dimmed">
-        ← Organisations
+      <Anchor component={Link} href="/contacts?tab=places" size="sm" c="dimmed">
+        ← Lieux &amp; structures
       </Anchor>
 
       <Group justify="space-between" align="flex-start">
