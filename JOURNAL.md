@@ -6,6 +6,31 @@
 
 ---
 
+## 2026-07-07 — Validation E2E de la refonte (A→F) + merge en prod
+
+### Étapes complétées
+- [x] Tests E2E manuels de tout le cycle authentifié de la refonte UX + séquences (prévus la veille).
+- [x] Merge `refonte-ux-nav-et-sequences` → `main` + déploiement prod.
+
+### Ce qui a été validé E2E (session connectée, Gmail branché)
+- **A→D** — Nav en hubs : bascules de vues/onglets (URL `?view=`/`?tab=`), redirections des anciennes routes (`/pipeline`, `/organizations`, `/templates`, `/inbox`), vue Calendrier des Dates, badge non-lus sur Prospection.
+- **F** — Kanban : drag & drop d'une carte entre colonnes, statut **persisté** après refresh ; flèches ◀ ▶ en fallback OK.
+- **E (le principal)** — Moteur de séquences :
+  - Séquence + étape à délai 0 → **enrôlement d'un contact = envoi immédiat réel** de l'email (variables `{{contact_name}}`/`{{artist_name}}` résolues, signature appliquée).
+  - **Coupure sur réponse confirmée** : réponse du contact → sync inbound → cron `/api/sequences/run` → enrollment passe en **`stopped` (raison `replied`)**, aucune étape suivante envoyée.
+
+### Merge & déploiement
+- `git merge --no-ff refonte-ux-nav-et-sequences` → merge commit **`13403b7`** (42 fichiers, +2691/−394).
+- **Build de prod local validé** avant push (24 routes, dont `/outreach`, `/sequences`, `/api/sequences/run`).
+- `git push origin main` → **auto-deploy Vercel** sur https://booking-os-psi.vercel.app.
+
+### État en fin de session
+- Refonte **en prod**. La branche `refonte-ux-nav-et-sequences` reste locale/distante (non supprimée — à nettoyer si souhaité).
+- À surveiller : succès du build côté Vercel + acceptation du 2ᵉ cron séquences (`0 9`) sur le plan Hobby.
+- Prochaine étape inchangée : inviter les beta-testeurs (Test users Google) + collecter le feedback ; 8.3 billing Stripe optionnel.
+
+---
+
 ## 2026-07-06 — Refonte UX de la navigation (A→E) + moteur de séquences
 
 ### Contexte
