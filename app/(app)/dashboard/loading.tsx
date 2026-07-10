@@ -1,26 +1,26 @@
-import { SimpleGrid, Skeleton, Stack } from "@mantine/core";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Squelette du dashboard (compteurs + sections), pendant le chargement serveur. */
 export default function DashboardLoading() {
   return (
-    <Stack gap="lg">
-      <Stack gap={4}>
-        <Skeleton height={34} width={200} radius="md" />
-        <Skeleton height={16} width={140} radius="sm" />
-      </Stack>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-8 w-52" />
+        <Skeleton className="h-4 w-36" />
+      </div>
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+      <div className="grid gap-4 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} height={92} radius="lg" />
+          <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
-      </SimpleGrid>
+      </div>
 
-      <Skeleton height={160} radius="lg" />
+      <Skeleton className="h-40 rounded-xl" />
 
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-        <Skeleton height={160} radius="lg" />
-        <Skeleton height={160} radius="lg" />
-      </SimpleGrid>
-    </Stack>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-40 rounded-xl" />
+      </div>
+    </div>
   );
 }

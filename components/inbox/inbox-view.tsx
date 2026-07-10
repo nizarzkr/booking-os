@@ -5,19 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
-import {
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Group,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { syncInbox, markAllInboundRead } from "@/app/(app)/inbox/actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 export type InboxItem = {
   id: string;
@@ -45,17 +39,16 @@ export function InboxView({ items }: { items: InboxItem[] }) {
     startSync(async () => {
       const result = await syncInbox();
       if ("error" in result) {
-        notifications.show({ color: "red", message: result.error });
+        toast.error(result.error);
         return;
       }
       if (result.inserted > 0) {
-        notifications.show({
-          color: "green",
-          message: `${result.inserted} nouvelle${result.inserted > 1 ? "s" : ""} réponse${result.inserted > 1 ? "s" : ""}.`,
-        });
+        toast.success(
+          `${result.inserted} nouvelle${result.inserted > 1 ? "s" : ""} réponse${result.inserted > 1 ? "s" : ""}.`,
+        );
         router.refresh();
       } else if (showToast) {
-        notifications.show({ color: "gray", message: "Aucune nouvelle réponse." });
+        toast("Aucune nouvelle réponse.");
       }
     });
   }
@@ -76,98 +69,91 @@ export function InboxView({ items }: { items: InboxItem[] }) {
   }
 
   return (
-    <Stack gap="lg">
-      <Group justify="space-between" align="center">
-        <Stack gap={2}>
-          <Group gap="sm">
-            <Title order={2}>Réponses</Title>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold">Réponses</h2>
             {unreadCount > 0 && (
-              <Badge color="green" variant="filled" size="lg">
+              <span className="grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground tabular-nums">
                 {unreadCount}
-              </Badge>
+              </span>
             )}
-          </Group>
-          <Text c="dimmed" size="sm">
+          </div>
+          <p className="text-sm text-muted-foreground">
             Les réponses à tes emails, centralisées.
-          </Text>
-        </Stack>
-        <Group gap="sm">
+          </p>
+        </div>
+        <div className="flex gap-2">
           {unreadCount > 0 && (
             <Button
-              variant="default"
-              color="gray"
+              variant="outline"
               onClick={handleMarkAllRead}
-              loading={markingRead}
+              disabled={markingRead}
             >
               Tout marquer comme lu
             </Button>
           )}
-          <Button onClick={() => runSync(true)} loading={syncing}>
-            Rafraîchir
+          <Button onClick={() => runSync(true)} disabled={syncing}>
+            {syncing ? "Sync…" : "Rafraîchir"}
           </Button>
-        </Group>
-      </Group>
+        </div>
+      </div>
 
       {items.length === 0 ? (
-        <Card withBorder padding="xl" radius="lg">
-          <Stack gap={4} align="center">
-            <Text fw={600}>Aucune réponse pour l&apos;instant</Text>
-            <Text c="dimmed" size="sm" ta="center">
+        <Card>
+          <CardContent className="flex flex-col items-center gap-1 py-8 text-center">
+            <p className="font-semibold">Aucune réponse pour l&apos;instant</p>
+            <p className="text-sm text-muted-foreground">
               Les réponses à tes emails envoyés depuis l&apos;app apparaîtront
               ici automatiquement.
-            </Text>
-          </Stack>
+            </p>
+          </CardContent>
         </Card>
       ) : (
-        <Stack gap="xs">
+        <div className="flex flex-col gap-2">
           {items.map((item) => (
             <Card
               key={item.id}
-              withBorder
-              radius="lg"
-              padding="md"
-              className="interactive-card"
-              style={
-                item.read
-                  ? undefined
-                  : { borderColor: "var(--mantine-color-green-6)" }
-              }
+              className={cn(
+                "interactive-card",
+                !item.read && "ring-primary/40",
+              )}
             >
-              <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Stack gap={2} style={{ minWidth: 0 }}>
-                  <Group gap="xs" wrap="nowrap">
+              <CardContent className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
                     {!item.read && (
-                      <Badge color="green" variant="light" size="sm">
-                        Nouveau
-                      </Badge>
+                      <StatusBadge color="green">Nouveau</StatusBadge>
                     )}
-                    <Text fw={600} size="sm" truncate>
+                    <span className="truncate text-sm font-semibold">
                       {item.subject ?? "(sans objet)"}
-                    </Text>
-                  </Group>
+                    </span>
+                  </div>
                   {item.href ? (
-                    <Anchor component={Link} href={item.href} size="xs">
+                    <Link
+                      href={item.href}
+                      className="text-xs text-primary hover:underline"
+                    >
                       {item.from}
-                    </Anchor>
+                    </Link>
                   ) : (
-                    <Text c="dimmed" size="xs">
-                      {item.from}
-                    </Text>
+                    <p className="text-xs text-muted-foreground">{item.from}</p>
                   )}
                   {item.body && (
-                    <Text c="dimmed" size="xs" lineClamp={2}>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                       {item.body}
-                    </Text>
+                    </p>
                   )}
-                </Stack>
-                <Text c="dimmed" size="xs" style={{ whiteSpace: "nowrap" }}>
+                </div>
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
                   {formatSentAt(item.sent_at)}
-                </Text>
-              </Group>
+                </span>
+              </CardContent>
             </Card>
           ))}
-        </Stack>
+        </div>
       )}
-    </Stack>
+    </div>
   );
 }

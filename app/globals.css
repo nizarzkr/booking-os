@@ -1,28 +1,147 @@
-/* Ordre des cascade layers.
-   Tailwind "base" (preflight) AVANT Mantine, "utilities" APRÈS.
-   DA « Studio » — dark-first minimal. Tout le style vit dans le thème Mantine
-   (lib/theme.ts) ; ce fichier reste minimal. Voir DESIGN_SYSTEM.md. */
-@layer theme, base, mantine, components, utilities;
-
 @import "tailwindcss";
-@import "@mantine/core/styles.layer.css";
-@import "@mantine/notifications/styles.layer.css";
-@import "@mantine/dates/styles.layer.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-html,
-body {
-  height: 100%;
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Canvas sombre (Mantine pose --mantine-color-body en dark scheme). */
-body {
-  background: var(--mantine-color-body);
+:root {
+  /* Booking OS — DA « crème » (reprise de Release OS) */
+  --background: #f6f3ec;
+  --foreground: #22201c;
+  --card: #ffffff;
+  --card-foreground: #22201c;
+  --popover: #ffffff;
+  --popover-foreground: #22201c;
+  --primary: #1e8a5f;
+  --primary-foreground: #ffffff;
+  --secondary: #fbfaf6;
+  --secondary-foreground: #22201c;
+  --muted: #f0ece2;
+  --muted-foreground: #8a857a;
+  --accent: #efebe0;
+  --accent-foreground: #22201c;
+  --destructive: #c15a54;
+  --border: #ebe6db;
+  --input: #ded8cb;
+  --ring: #1e8a5f;
+  /* Palette data — vert, bleu ardoise, ambre, rose, encre */
+  --chart-1: #1e8a5f;
+  --chart-2: #3e6dae;
+  --chart-3: #c08a2e;
+  --chart-4: #c15a54;
+  --chart-5: #22201c;
+  --radius: 0.75rem;
+  --sidebar: #fbfaf6;
+  --sidebar-foreground: #22201c;
+  --sidebar-primary: #1e8a5f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efebe0;
+  --sidebar-accent-foreground: #22201c;
+  --sidebar-border: #ebe6db;
+  --sidebar-ring: #1e8a5f;
 }
 
-/* Polish UX (étape 8.2) — animations CSS subtiles, cohérentes avec la DA sobre.
-   Rien de tape-à-l'œil : fondu doux à la navigation + micro-interactions hover. */
+.dark {
+  /* Variante sombre chaude — cohérente avec le thème crème */
+  --background: #17150f;
+  --foreground: #f3efe6;
+  --card: #201d16;
+  --card-foreground: #f3efe6;
+  --popover: #201d16;
+  --popover-foreground: #f3efe6;
+  --primary: #34b57e;
+  --primary-foreground: #10130f;
+  --secondary: #262218;
+  --secondary-foreground: #f3efe6;
+  --muted: #262218;
+  --muted-foreground: #a9a295;
+  --accent: #2c2719;
+  --accent-foreground: #f3efe6;
+  --destructive: #e07a72;
+  --border: rgba(243, 239, 230, 0.1);
+  --input: rgba(243, 239, 230, 0.15);
+  --ring: #34b57e;
+  --chart-1: #34b57e;
+  --chart-2: #6a97d8;
+  --chart-3: #d6a94e;
+  --chart-4: #e07a72;
+  --chart-5: #f3efe6;
+  --sidebar: #201d16;
+  --sidebar-foreground: #f3efe6;
+  --sidebar-primary: #34b57e;
+  --sidebar-primary-foreground: #10130f;
+  --sidebar-accent: #2c2719;
+  --sidebar-accent-foreground: #f3efe6;
+  --sidebar-border: rgba(243, 239, 230, 0.1);
+  --sidebar-ring: #34b57e;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    letter-spacing: -0.011em;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Polish UX — fondu doux à la navigation + micro-interactions (repris de l'ancienne DA,
+   recâblé sur les tokens shadcn). Coupé si prefers-reduced-motion. */
 @layer components {
-  /* Fondu + léger glissement du contenu à chaque navigation. */
   @keyframes page-enter {
     from {
       opacity: 0;
@@ -37,22 +156,21 @@ body {
     animation: page-enter 240ms ease-out;
   }
 
-  /* Cartes cliquables : la bordure se renforce et la carte se soulève d'1px. */
   .interactive-card {
     transition:
       border-color 150ms ease,
-      transform 150ms ease;
+      transform 150ms ease,
+      box-shadow 150ms ease;
   }
   .interactive-card:hover {
-    border-color: var(--mantine-color-dark-4);
+    border-color: color-mix(in oklch, var(--border), var(--foreground) 15%);
     transform: translateY(-1px);
   }
   .interactive-card:focus-visible {
-    outline: 2px solid var(--mantine-color-violet-4);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
-  /* Accessibilité : on coupe tout mouvement si l'utilisateur le demande. */
   @media (prefers-reduced-motion: reduce) {
     .page-enter {
       animation: none;

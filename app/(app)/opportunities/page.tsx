@@ -1,4 +1,3 @@
-import { Alert, Stack, Title } from "@mantine/core";
 
 import { createClient } from "@/lib/supabase/server";
 import { fullName } from "@/components/contacts/roles";
@@ -70,13 +69,13 @@ export default async function OpportunitiesPage({
   }));
 
   return (
-    <Stack gap="lg">
-      <Title order={1}>Dates</Title>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-semibold">Dates</h1>
 
       {error ? (
-        <Alert color="red" variant="light" radius="md">
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Impossible de charger les dates. Réessaie.
-        </Alert>
+        </div>
       ) : (
         <OpportunitiesView
           opportunities={opportunities}
@@ -85,6 +84,6 @@ export default async function OpportunitiesPage({
           initialView={initialView}
         />
       )}
-    </Stack>
+    </div>
   );
 }

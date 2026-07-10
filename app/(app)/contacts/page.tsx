@@ -1,5 +1,3 @@
-import { Alert, Stack, Title } from "@mantine/core";
-
 import { createClient } from "@/lib/supabase/server";
 import { ContactsHub, type ContactsTab } from "@/components/contacts/contacts-hub";
 
@@ -33,13 +31,13 @@ export default async function ContactsPage({
   const error = contactsError ?? orgsError;
 
   return (
-    <Stack gap="lg">
-      <Title order={1}>Contacts</Title>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-semibold">Contacts</h1>
 
       {error ? (
-        <Alert color="red" variant="light" radius="md">
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Impossible de charger le carnet. Réessaie.
-        </Alert>
+        </div>
       ) : (
         <ContactsHub
           contacts={contacts ?? []}
@@ -48,6 +46,6 @@ export default async function ContactsPage({
           initialTab={initialTab}
         />
       )}
-    </Stack>
+    </div>
   );
 }

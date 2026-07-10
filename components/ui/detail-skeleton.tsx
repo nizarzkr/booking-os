@@ -1,4 +1,4 @@
-import { Group, Skeleton, SimpleGrid, Stack } from "@mantine/core";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Squelette de chargement pour les fiches détail (contact / opportunité /
@@ -7,23 +7,23 @@ import { Group, Skeleton, SimpleGrid, Stack } from "@mantine/core";
  */
 export function DetailSkeleton() {
   return (
-    <Stack gap="lg">
-      <Group justify="space-between" align="flex-start">
-        <Skeleton height={30} width={240} radius="md" />
-        <Group gap="sm">
-          <Skeleton height={34} width={90} radius="md" />
-          <Skeleton height={34} width={90} radius="md" />
-        </Group>
-      </Group>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start justify-between">
+        <Skeleton className="h-8 w-60" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+      </div>
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+      <div className="grid gap-2 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} height={44} radius="md" />
+          <Skeleton key={i} className="h-11" />
         ))}
-      </SimpleGrid>
+      </div>
 
-      <Skeleton height={140} radius="lg" />
-      <Skeleton height={140} radius="lg" />
-    </Stack>
+      <Skeleton className="h-36 rounded-xl" />
+      <Skeleton className="h-36 rounded-xl" />
+    </div>
   );
 }

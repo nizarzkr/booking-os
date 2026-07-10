@@ -3,23 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ActionIcon,
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Group,
-  Menu,
-  Modal,
-  MultiSelect,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  Tooltip,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
+import { ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import {
   deleteSequence,
@@ -39,6 +24,25 @@ import {
   type Sequence,
   type SequenceStep,
 } from "@/components/sequences/sequence-types";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ContactOption = { id: string; name: string };
 
@@ -85,7 +89,7 @@ export function SequenceDetail({
   function handleMoveStep(step: SequenceStep, dir: "up" | "down") {
     startTransition(async () => {
       const res = await moveStep(step.id, sequence.id, dir);
-      if ("error" in res) notifications.show({ color: "red", message: res.error });
+      if ("error" in res) toast.error(res.error);
       else refresh();
     });
   }
@@ -93,16 +97,17 @@ export function SequenceDetail({
   function handleDeleteStep(step: SequenceStep) {
     startTransition(async () => {
       const res = await deleteStep(step.id, sequence.id);
-      if ("error" in res) notifications.show({ color: "red", message: res.error });
+      if ("error" in res) toast.error(res.error);
       else refresh();
     });
   }
 
-  function handleRename() {
+  function handleRename(e: React.FormEvent) {
+    e.preventDefault();
     startTransition(async () => {
       const res = await renameSequence(sequence.id, name);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       setRenameOpen(false);
@@ -114,7 +119,7 @@ export function SequenceDetail({
     startTransition(async () => {
       const res = await deleteSequence(sequence.id);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.push("/outreach?tab=sequences");
@@ -124,9 +129,15 @@ export function SequenceDetail({
   function handleStop(enrollmentId: string) {
     startTransition(async () => {
       const res = await stopEnrollment(enrollmentId, sequence.id);
-      if ("error" in res) notifications.show({ color: "red", message: res.error });
+      if ("error" in res) toast.error(res.error);
       else refresh();
     });
+  }
+
+  function toggleContact(id: string) {
+    setSelectedContacts((cur) =>
+      cur.includes(id) ? cur.filter((c) => c !== id) : [...cur, id],
+    );
   }
 
   function handleEnroll() {
@@ -134,10 +145,10 @@ export function SequenceDetail({
     startTransition(async () => {
       const res = await enrollContacts(sequence.id, selectedContacts);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
-      notifications.show({ color: "green", message: "Contacts enrôlés." });
+      toast.success("Contacts enrôlés.");
       setEnrollOpen(false);
       setSelectedContacts([]);
       refresh();
@@ -145,183 +156,198 @@ export function SequenceDetail({
   }
 
   return (
-    <Stack gap="lg">
-      <Anchor component={Link} href="/outreach?tab=sequences" size="sm" c="dimmed">
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/outreach?tab=sequences"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
         ← Prospection
-      </Anchor>
+      </Link>
 
-      <Group justify="space-between" align="center">
-        <Title order={1}>{sequence.name}</Title>
-        <Menu position="bottom-end" withArrow>
-          <Menu.Target>
-            <Button variant="default">Options</Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item onClick={() => { setName(sequence.name); setRenameOpen(true); }}>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">{sequence.name}</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="outline" />}>
+            Options
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem
+              onClick={() => {
+                setName(sequence.name);
+                setRenameOpen(true);
+              }}
+            >
               Renommer
-            </Menu.Item>
-            <Menu.Item color="red" onClick={() => setDeleteOpen(true)}>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
               Supprimer
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-      {/* Étapes ------------------------------------------------------------ */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Group justify="space-between" align="center">
-            <Text fw={700}>Étapes</Text>
-            <Button size="xs" onClick={openAddStep}>
+      {/* Étapes */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Étapes</CardTitle>
+            <Button size="sm" onClick={openAddStep}>
               Ajouter une étape
             </Button>
-          </Group>
-
+          </div>
+        </CardHeader>
+        <CardContent>
           {steps.length === 0 ? (
-            <Text c="dimmed" size="sm">
+            <p className="text-sm text-muted-foreground">
               Aucune étape. Ajoute un premier email pour démarrer la séquence.
-            </Text>
+            </p>
           ) : (
-            <Stack gap="sm">
+            <div className="flex flex-col gap-2.5">
               {steps.map((step, i) => (
-                <Card key={step.id} withBorder padding="sm" radius="md">
-                  <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-                      <Group gap="xs">
-                        <Badge variant="light" color="violet">
-                          Étape {i + 1}
-                        </Badge>
-                        <Badge variant="light" color="gray">
-                          {formatDelay(step.delay_days)}
-                        </Badge>
-                      </Group>
-                      <Text fw={600} size="sm">
-                        {step.subject || "(sans objet)"}
-                      </Text>
-                      <Text c="dimmed" size="xs" lineClamp={2}>
-                        {step.body}
-                      </Text>
-                    </Stack>
-                    <Group gap={2} wrap="nowrap">
-                      <Tooltip label="Monter" withArrow>
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          size="sm"
-                          aria-label="Monter"
-                          disabled={i === 0 || pending}
-                          onClick={() => handleMoveStep(step, "up")}
+                <div
+                  key={step.id}
+                  className="flex items-start justify-between gap-3 rounded-xl border p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1.5 flex gap-1.5">
+                      <StatusBadge color="violet">Étape {i + 1}</StatusBadge>
+                      <StatusBadge color="gray">
+                        {formatDelay(step.delay_days)}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-sm font-semibold">
+                      {step.subject || "(sans objet)"}
+                    </p>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {step.body}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-0.5">
+                    <button
+                      type="button"
+                      aria-label="Monter"
+                      disabled={i === 0 || pending}
+                      onClick={() => handleMoveStep(step, "up")}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      <ChevronUp className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Descendre"
+                      disabled={i === steps.length - 1 || pending}
+                      onClick={() => handleMoveStep(step, "down")}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      <ChevronDown className="size-4" />
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Actions"
+                          />
+                        }
+                      >
+                        <MoreHorizontal />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => openEditStep(step)}>
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => handleDeleteStep(step)}
                         >
-                          ▲
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Descendre" withArrow>
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          size="sm"
-                          aria-label="Descendre"
-                          disabled={i === steps.length - 1 || pending}
-                          onClick={() => handleMoveStep(step, "down")}
-                        >
-                          ▼
-                        </ActionIcon>
-                      </Tooltip>
-                      <Menu position="bottom-end" withArrow>
-                        <Menu.Target>
-                          <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Actions">
-                            ⋯
-                          </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          <Menu.Item onClick={() => openEditStep(step)}>
-                            Modifier
-                          </Menu.Item>
-                          <Menu.Item color="red" onClick={() => handleDeleteStep(step)}>
-                            Supprimer
-                          </Menu.Item>
-                        </Menu.Dropdown>
-                      </Menu>
-                    </Group>
-                  </Group>
-                </Card>
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               ))}
-            </Stack>
+            </div>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
-      {/* Contacts enrôlés -------------------------------------------------- */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Group justify="space-between" align="center">
-            <Text fw={700}>Contacts enrôlés</Text>
+      {/* Contacts enrôlés */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Contacts enrôlés</CardTitle>
             <Button
-              size="xs"
-              variant="default"
+              size="sm"
+              variant="outline"
               onClick={() => setEnrollOpen(true)}
               disabled={steps.length === 0}
             >
               Enrôler des contacts
             </Button>
-          </Group>
-
+          </div>
+        </CardHeader>
+        <CardContent>
           {steps.length === 0 && (
-            <Text c="dimmed" size="xs">
+            <p className="mb-2 text-xs text-muted-foreground">
               Ajoute au moins une étape avant d&apos;enrôler des contacts.
-            </Text>
+            </p>
           )}
 
           {enrollments.length === 0 ? (
-            <Text c="dimmed" size="sm">
+            <p className="text-sm text-muted-foreground">
               Aucun contact enrôlé pour l&apos;instant.
-            </Text>
+            </p>
           ) : (
-            <Stack gap="xs">
+            <ul className="flex flex-col gap-2">
               {enrollments.map((e) => {
                 const meta = ENROLLMENT_STATUS_META[e.status];
                 return (
-                  <Group key={e.id} justify="space-between" wrap="nowrap">
-                    <Group gap="sm" wrap="nowrap">
-                      <Anchor
-                        component={Link}
+                  <li
+                    key={e.id}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Link
                         href={`/contacts/${e.contact_id}`}
-                        size="sm"
-                        fw={500}
+                        className="text-sm font-medium text-primary hover:underline"
                       >
                         {e.contact_name}
-                      </Anchor>
-                      <Badge color={meta.color} variant="light" size="sm">
+                      </Link>
+                      <StatusBadge color={meta.color}>
                         {meta.label}
                         {e.status === "stopped" && e.stop_reason
                           ? ` · ${STOP_REASON_LABEL[e.stop_reason] ?? e.stop_reason}`
                           : ""}
-                      </Badge>
-                    </Group>
-                    <Group gap="md" wrap="nowrap">
+                      </StatusBadge>
+                    </div>
+                    <div className="flex items-center gap-3">
                       {e.status === "active" && (
-                        <Text c="dimmed" size="xs">
+                        <span className="text-xs text-muted-foreground">
                           prochaine : {formatNextSend(e.next_send_at)}
-                        </Text>
+                        </span>
                       )}
                       {e.status === "active" && (
                         <Button
-                          size="compact-xs"
-                          variant="subtle"
-                          color="gray"
+                          size="sm"
+                          variant="ghost"
                           onClick={() => handleStop(e.id)}
                           disabled={pending}
                         >
                           Arrêter
                         </Button>
                       )}
-                    </Group>
-                  </Group>
+                    </div>
+                  </li>
                 );
               })}
-            </Stack>
+            </ul>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
       {stepModalOpen && (
@@ -338,73 +364,129 @@ export function SequenceDetail({
       )}
 
       {/* Renommer */}
-      <Modal opened={renameOpen} onClose={() => setRenameOpen(false)} title="Renommer la séquence" centered>
-        <form onSubmit={(e) => { e.preventDefault(); handleRename(); }}>
-          <Stack gap="md">
-            <TextInput
-              label="Nom"
-              value={name}
-              onChange={(e) => setName(e.currentTarget.value)}
-              data-autofocus
-              required
-            />
-            <Group justify="flex-end">
-              <Button type="button" variant="subtle" color="gray" onClick={() => setRenameOpen(false)}>
+      <Dialog
+        open={renameOpen}
+        onOpenChange={(open) => {
+          if (!open) setRenameOpen(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renommer la séquence</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRename} className="flex flex-col gap-4">
+            <Field label="Nom" htmlFor="rename" required>
+              <Input
+                id="rename"
+                value={name}
+                onChange={(e) => setName(e.currentTarget.value)}
+                required
+              />
+            </Field>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setRenameOpen(false)}
+              >
                 Annuler
               </Button>
-              <Button type="submit" loading={pending}>Enregistrer</Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+              <Button type="submit" disabled={pending}>
+                {pending ? "…" : "Enregistrer"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Supprimer la séquence */}
-      <Modal opened={deleteOpen} onClose={() => setDeleteOpen(false)} title="Supprimer la séquence" centered>
-        <Stack gap="md">
-          <Text size="sm">
-            Supprimer <b>{sequence.name}</b> ? Les étapes et enrôlements liés
-            seront supprimés. Cette action est irréversible.
-          </Text>
-          <Group justify="flex-end">
-            <Button variant="subtle" color="gray" onClick={() => setDeleteOpen(false)}>
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!open) setDeleteOpen(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la séquence</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{sequence.name}</b> ? Les
+            étapes et enrôlements liés seront supprimés. Cette action est
+            irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleteOpen(false)}
+            >
               Annuler
             </Button>
-            <Button color="red" onClick={handleDeleteSequence} loading={pending}>
-              Supprimer
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteSequence}
+              disabled={pending}
+            >
+              {pending ? "…" : "Supprimer"}
             </Button>
-          </Group>
-        </Stack>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Enrôler des contacts */}
-      <Modal opened={enrollOpen} onClose={() => setEnrollOpen(false)} title="Enrôler des contacts" centered>
-        <Stack gap="md">
+      <Dialog
+        open={enrollOpen}
+        onOpenChange={(open) => {
+          if (!open) setEnrollOpen(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enrôler des contacts</DialogTitle>
+          </DialogHeader>
           {enrollableContacts.length === 0 ? (
-            <Text c="dimmed" size="sm">
+            <p className="text-sm text-muted-foreground">
               Tous tes contacts sont déjà enrôlés (ou tu n&apos;as pas encore de
               contact).
-            </Text>
+            </p>
           ) : (
-            <MultiSelect
-              label="Contacts"
-              placeholder="Choisir des contacts"
-              data={enrollableContacts.map((c) => ({ value: c.id, label: c.name }))}
-              value={selectedContacts}
-              onChange={setSelectedContacts}
-              searchable
-              data-autofocus
-            />
+            <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+              {enrollableContacts.map((c) => (
+                <label
+                  key={c.id}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1.5 text-sm hover:bg-accent"
+                >
+                  <Checkbox
+                    checked={selectedContacts.includes(c.id)}
+                    onCheckedChange={() => toggleContact(c.id)}
+                  />
+                  {c.name}
+                </label>
+              ))}
+            </div>
           )}
-          <Group justify="flex-end">
-            <Button variant="subtle" color="gray" onClick={() => setEnrollOpen(false)}>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setEnrollOpen(false)}
+            >
               Annuler
             </Button>
-            <Button onClick={handleEnroll} loading={pending} disabled={selectedContacts.length === 0}>
-              Enrôler
+            <Button
+              type="button"
+              onClick={handleEnroll}
+              disabled={selectedContacts.length === 0 || pending}
+            >
+              {pending
+                ? "…"
+                : `Enrôler${selectedContacts.length > 0 ? ` (${selectedContacts.length})` : ""}`}
             </Button>
-          </Group>
-        </Stack>
-      </Modal>
-    </Stack>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

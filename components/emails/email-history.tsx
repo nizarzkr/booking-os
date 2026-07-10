@@ -2,8 +2,9 @@
 
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
-import { Badge, Card, Group, Stack, Text } from "@mantine/core";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { Database } from "@/types/database.types";
 
 export type EmailLog = Pick<
@@ -18,53 +19,48 @@ function formatSentAt(iso: string): string {
 /** Historique des emails (envoyés/reçus) d'un contact ou d'une opportunité. */
 export function EmailHistory({ logs }: { logs: EmailLog[] }) {
   return (
-    <Card withBorder radius="lg" padding="lg">
-      <Stack gap="sm">
-        <Text fw={600}>Historique des emails</Text>
-
+    <Card>
+      <CardHeader>
+        <CardTitle>Historique des emails</CardTitle>
+      </CardHeader>
+      <CardContent>
         {logs.length === 0 ? (
-          <Text c="dimmed" size="sm">
+          <p className="text-sm text-muted-foreground">
             {"Aucun email pour l'instant."}
-          </Text>
+          </p>
         ) : (
-          <Stack gap="xs">
+          <ul className="flex flex-col gap-2">
             {logs.map((log) => {
               const outbound = log.direction === "outbound";
               return (
-                <Group
+                <li
                   key={log.id}
-                  justify="space-between"
-                  align="flex-start"
-                  wrap="nowrap"
+                  className="flex items-start justify-between gap-3"
                 >
-                  <Stack gap={2} style={{ minWidth: 0 }}>
-                    <Group gap="xs">
-                      <Badge
-                        color={outbound ? "violet" : "green"}
-                        variant="light"
-                        size="sm"
-                      >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge color={outbound ? "violet" : "green"}>
                         {outbound ? "Envoyé" : "Reçu"}
-                      </Badge>
-                      <Text fw={500} size="sm" truncate>
+                      </StatusBadge>
+                      <span className="truncate text-sm font-medium">
                         {log.subject ?? "(sans objet)"}
-                      </Text>
-                    </Group>
+                      </span>
+                    </div>
                     {log.body && (
-                      <Text c="dimmed" size="xs" lineClamp={1}>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {log.body}
-                      </Text>
+                      </p>
                     )}
-                  </Stack>
-                  <Text c="dimmed" size="xs" style={{ whiteSpace: "nowrap" }}>
+                  </div>
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {formatSentAt(log.sent_at)}
-                  </Text>
-                </Group>
+                  </span>
+                </li>
               );
             })}
-          </Stack>
+          </ul>
         )}
-      </Stack>
+      </CardContent>
     </Card>
   );
 }

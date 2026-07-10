@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Button, Group, Stack, Text, Title } from "@mantine/core";
+
+import { Button } from "@/components/ui/button";
 
 /**
  * Frontière d'erreur des routes applicatives (App Router).
@@ -21,19 +22,17 @@ export default function AppError({
   }, [error]);
 
   return (
-    <Stack align="center" gap="xs" py={64}>
-      <Title order={2} fw={600}>
-        Une erreur est survenue
-      </Title>
-      <Text c="dimmed" size="sm" ta="center" maw={420}>
+    <div className="flex flex-col items-center gap-2 py-16 text-center">
+      <h2 className="text-xl font-semibold">Une erreur est survenue</h2>
+      <p className="max-w-md text-sm text-muted-foreground">
         {"Quelque chose s'est mal passé de notre côté. Réessaie, ou reviens au dashboard."}
-      </Text>
-      <Group mt="sm">
+      </p>
+      <div className="mt-2 flex gap-2">
         <Button onClick={reset}>Réessayer</Button>
-        <Button variant="default" component={Link} href="/dashboard">
+        <Button variant="outline" render={<Link href="/dashboard" />}>
           Retour au dashboard
         </Button>
-      </Group>
-    </Stack>
+      </div>
+    </div>
   );
 }

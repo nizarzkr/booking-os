@@ -1,30 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
-import {
-  Alert,
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  FileButton,
-  Group,
-  List,
-  Select,
-  SimpleGrid,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from "@mantine/core";
 
 import {
   importContacts,
   type ImportReport,
 } from "@/app/(app)/contacts/import/actions";
 import { EMAIL_RE, type ContactInput } from "@/components/contacts/contact-input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const MAX_ROWS = 1000;
 const PREVIEW_LIMIT = 8;
@@ -40,7 +44,6 @@ const TARGET_FIELDS: { key: TargetField; label: string; required: boolean }[] = 
   { key: "notes", label: "Notes", required: false },
 ];
 
-// Mots-clés d'auto-détection par champ (sur en-tête normalisé sans accents).
 const GUESS: Record<TargetField, string[]> = {
   first_name: ["prenom", "first"],
   last_name: ["nom de famille", "last", "surname", "famille", "nom"],
@@ -68,7 +71,6 @@ function deburr(s: string): string {
     .trim();
 }
 
-/** Devine le mapping en associant chaque champ à une colonne encore libre. */
 function guessMapping(columns: string[]): Mapping {
   const mapping = { ...EMPTY_MAPPING };
   const used = new Set<string>();
@@ -94,12 +96,14 @@ export function ContactImporter() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function reset() {
     setParsed(null);
     setMapping(EMPTY_MAPPING);
     setParseError(null);
     setReport(null);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   function handleFile(file: File | null) {
@@ -130,7 +134,6 @@ export function ContactImporter() {
     });
   }
 
-  // Lignes mappées vers le format ContactInput.
   const rows: ContactInput[] = useMemo(() => {
     if (!parsed) return [];
     const val = (row: Record<string, string>, col: string | null) =>
@@ -145,15 +148,10 @@ export function ContactImporter() {
     }));
   }, [parsed, mapping]);
 
-  // Estimations client (le rapport serveur fait foi pour les doublons).
   const missingName = rows.filter((r) => !r.first_name.trim()).length;
   const invalidEmail = rows.filter(
     (r) => r.email.trim() && !EMAIL_RE.test(r.email.trim()),
   ).length;
-
-  const columnOptions = parsed
-    ? parsed.columns.map((c) => ({ value: c, label: c }))
-    : [];
 
   async function handleImport() {
     setLoading(true);
@@ -167,180 +165,203 @@ export function ContactImporter() {
   }
 
   return (
-    <Stack gap="xl" maw={820}>
-      <Group gap="sm">
-        <Anchor component={Link} href="/contacts" size="sm" c="dimmed">
-          ← Contacts
-        </Anchor>
-      </Group>
-      <Title order={1}>Importer des contacts</Title>
+    <div className="flex max-w-3xl flex-col gap-6">
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(e) => handleFile(e.currentTarget.files?.[0] ?? null)}
+      />
+
+      <Link
+        href="/contacts"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Contacts
+      </Link>
+      <h1 className="text-2xl font-semibold">Importer des contacts</h1>
 
       {parseError && (
-        <Alert color="red" variant="light" radius="md">
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {parseError}
-        </Alert>
+        </div>
       )}
 
-      {/* Rapport final */}
       {report ? (
-        <Card withBorder radius="lg" padding="lg">
-          <Stack gap="md">
-            <Alert color="green" variant="light" radius="md">
+        <Card>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
               {report.inserted} contact{report.inserted > 1 ? "s" : ""} importé
               {report.inserted > 1 ? "s" : ""}.
-            </Alert>
+            </div>
 
             {report.skipped.length > 0 && (
-              <Stack gap="xs">
-                <Text fw={500} size="sm">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">
                   {report.skipped.length} ligne
                   {report.skipped.length > 1 ? "s" : ""} ignorée
                   {report.skipped.length > 1 ? "s" : ""} :
-                </Text>
-                <List size="sm" c="dimmed">
+                </p>
+                <ul className="list-disc pl-5 text-sm text-muted-foreground">
                   {report.skipped.slice(0, 20).map((s) => (
-                    <List.Item key={s.line}>
+                    <li key={s.line}>
                       Ligne {s.line} — {s.reason}
-                    </List.Item>
+                    </li>
                   ))}
-                </List>
+                </ul>
                 {report.skipped.length > 20 && (
-                  <Text size="xs" c="dimmed">
+                  <p className="text-xs text-muted-foreground">
                     … et {report.skipped.length - 20} autre(s).
-                  </Text>
+                  </p>
                 )}
-              </Stack>
+              </div>
             )}
 
-            <Group>
-              <Button component={Link} href="/contacts">
+            <div className="flex gap-2">
+              <Button render={<Link href="/contacts" />}>
                 Voir les contacts
               </Button>
-              <Button variant="default" onClick={reset}>
+              <Button variant="outline" onClick={reset}>
                 Importer un autre fichier
               </Button>
-            </Group>
-          </Stack>
+            </div>
+          </CardContent>
         </Card>
       ) : (
         <>
           {/* Étape 1 — upload */}
-          <Card withBorder radius="lg" padding="lg">
-            <Group justify="space-between">
-              <Stack gap={2}>
-                <Text fw={600}>Fichier CSV</Text>
-                <Text c="dimmed" size="sm">
+          <Card>
+            <CardContent className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5">
+                <p className="font-medium">Fichier CSV</p>
+                <p className="text-sm text-muted-foreground">
                   Première ligne = en-têtes de colonnes. Max {MAX_ROWS} lignes.
-                </Text>
-              </Stack>
-              <FileButton onChange={handleFile} accept=".csv,text/csv">
-                {(props) => (
-                  <Button {...props} variant={parsed ? "default" : "filled"}>
-                    {parsed ? "Changer de fichier" : "Choisir un fichier"}
-                  </Button>
-                )}
-              </FileButton>
-            </Group>
+                </p>
+              </div>
+              <Button
+                variant={parsed ? "outline" : "default"}
+                onClick={() => fileRef.current?.click()}
+              >
+                {parsed ? "Changer de fichier" : "Choisir un fichier"}
+              </Button>
+            </CardContent>
           </Card>
 
           {parsed && (
             <>
               {/* Étape 2 — mapping */}
-              <Card withBorder radius="lg" padding="lg">
-                <Stack gap="md">
-                  <Text fw={600}>Correspondance des colonnes</Text>
-                  <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Correspondance des colonnes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {TARGET_FIELDS.map((f) => (
-                      <Select
+                      <Field
                         key={f.key}
-                        label={
-                          f.required ? `${f.label} (requis)` : f.label
-                        }
-                        placeholder="— Ignorer —"
-                        data={columnOptions}
-                        value={mapping[f.key]}
-                        onChange={(v) =>
-                          setMapping((m) => ({ ...m, [f.key]: v }))
-                        }
-                        clearable
+                        label={f.required ? `${f.label} (requis)` : f.label}
                         error={
                           f.required && !mapping[f.key]
                             ? "Colonne requise"
                             : undefined
                         }
-                      />
+                      >
+                        <Select
+                          value={mapping[f.key] ?? ""}
+                          onValueChange={(v) =>
+                            setMapping((m) => ({
+                              ...m,
+                              [f.key]: v ? String(v) : null,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="— Ignorer —" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">— Ignorer —</SelectItem>
+                            {parsed.columns.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
                     ))}
-                  </SimpleGrid>
-                </Stack>
+                  </div>
+                </CardContent>
               </Card>
 
               {/* Étape 3 — aperçu */}
-              <Card withBorder radius="lg" padding="lg">
-                <Stack gap="md">
-                  <Group gap="xs">
-                    <Text fw={600}>Aperçu</Text>
-                    <Badge variant="light" color="gray">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle>Aperçu</CardTitle>
+                    <Badge variant="secondary">
                       {rows.length} ligne{rows.length > 1 ? "s" : ""}
                     </Badge>
                     {missingName > 0 && (
-                      <Badge variant="light" color="red">
+                      <StatusBadge color="red">
                         {missingName} sans prénom/nom
-                      </Badge>
+                      </StatusBadge>
                     )}
                     {invalidEmail > 0 && (
-                      <Badge variant="light" color="yellow">
+                      <StatusBadge color="yellow">
                         {invalidEmail} email(s) invalide(s)
-                      </Badge>
+                      </StatusBadge>
                     )}
-                  </Group>
-
-                  <Table.ScrollContainer minWidth={640}>
-                    <Table striped highlightOnHover>
-                      <Table.Thead>
-                        <Table.Tr>
-                          <Table.Th>Prénom / Nom</Table.Th>
-                          <Table.Th>Nom</Table.Th>
-                          <Table.Th>Email</Table.Th>
-                          <Table.Th>Téléphone</Table.Th>
-                          <Table.Th>Rôle</Table.Th>
-                        </Table.Tr>
-                      </Table.Thead>
-                      <Table.Tbody>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="rounded-xl border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Prénom / Nom</TableHead>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Téléphone</TableHead>
+                          <TableHead>Rôle</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {rows.slice(0, PREVIEW_LIMIT).map((r, i) => (
-                          <Table.Tr key={i}>
-                            <Table.Td>{r.first_name || "—"}</Table.Td>
-                            <Table.Td>{r.last_name || "—"}</Table.Td>
-                            <Table.Td>{r.email || "—"}</Table.Td>
-                            <Table.Td>{r.phone || "—"}</Table.Td>
-                            <Table.Td>{r.role || "—"}</Table.Td>
-                          </Table.Tr>
+                          <TableRow key={i}>
+                            <TableCell>{r.first_name || "—"}</TableCell>
+                            <TableCell>{r.last_name || "—"}</TableCell>
+                            <TableCell>{r.email || "—"}</TableCell>
+                            <TableCell>{r.phone || "—"}</TableCell>
+                            <TableCell>{r.role || "—"}</TableCell>
+                          </TableRow>
                         ))}
-                      </Table.Tbody>
+                      </TableBody>
                     </Table>
-                  </Table.ScrollContainer>
+                  </div>
 
                   {rows.length > PREVIEW_LIMIT && (
-                    <Text size="xs" c="dimmed">
+                    <p className="text-xs text-muted-foreground">
                       … et {rows.length - PREVIEW_LIMIT} autre(s) ligne(s).
-                    </Text>
+                    </p>
                   )}
 
-                  <Group justify="flex-end">
+                  <div className="flex justify-end">
                     <Button
                       onClick={handleImport}
-                      loading={loading}
-                      disabled={!mapping.first_name}
+                      disabled={loading || !mapping.first_name}
                     >
-                      Importer {rows.length} contact
-                      {rows.length > 1 ? "s" : ""}
+                      {loading
+                        ? "Import…"
+                        : `Importer ${rows.length} contact${rows.length > 1 ? "s" : ""}`}
                     </Button>
-                  </Group>
-                </Stack>
+                  </div>
+                </CardContent>
               </Card>
             </>
           )}
         </>
       )}
-    </Stack>
+    </div>
   );
 }

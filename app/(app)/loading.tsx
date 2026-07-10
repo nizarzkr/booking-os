@@ -1,4 +1,4 @@
-import { Group, Skeleton, Stack } from "@mantine/core";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * UI de chargement affichée pendant la navigation serveur (App Router).
@@ -6,17 +6,17 @@ import { Group, Skeleton, Stack } from "@mantine/core";
  */
 export default function Loading() {
   return (
-    <Stack gap="lg">
-      <Skeleton height={32} width={220} radius="md" />
-      <Group>
-        <Skeleton height={36} radius="md" style={{ flex: 1 }} />
-        <Skeleton height={36} width={200} radius="md" />
-      </Group>
-      <Stack gap="sm">
+    <div className="flex flex-col gap-6">
+      <Skeleton className="h-8 w-56" />
+      <div className="flex gap-4">
+        <Skeleton className="h-9 flex-1" />
+        <Skeleton className="h-9 w-52" />
+      </div>
+      <div className="flex flex-col gap-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} height={56} radius="md" />
+          <Skeleton key={i} className="h-14 rounded-lg" />
         ))}
-      </Stack>
-    </Stack>
+      </div>
+    </div>
   );
 }

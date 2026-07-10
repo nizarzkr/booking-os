@@ -1,14 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, Divider, Group, Modal, Select, Stack, Text } from "@mantine/core";
 
-import { formatFee, formatGigDate } from "@/components/opportunities/opportunity-types";
+import {
+  formatFee,
+  formatGigDate,
+} from "@/components/opportunities/opportunity-types";
 import {
   renderTemplate,
   type EmailTemplate,
   type TemplateVars,
 } from "@/components/templates/template-types";
+import { Field } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type PreviewContact = { id: string; name: string };
 export type PreviewOpportunity = {
@@ -35,11 +51,9 @@ export function TemplatePreviewModal({
   artistName,
   onClose,
 }: Props) {
-  const [contactId, setContactId] = useState<string | null>(
-    contacts[0]?.id ?? null,
-  );
-  const [opportunityId, setOpportunityId] = useState<string | null>(
-    opportunities[0]?.id ?? null,
+  const [contactId, setContactId] = useState<string>(contacts[0]?.id ?? "");
+  const [opportunityId, setOpportunityId] = useState<string>(
+    opportunities[0]?.id ?? "",
   );
 
   const vars = useMemo<Partial<TemplateVars>>(() => {
@@ -59,60 +73,75 @@ export function TemplatePreviewModal({
   const body = renderTemplate(template.body, vars);
 
   return (
-    <Modal
-      opened
-      onClose={onClose}
-      title={`Aperçu — ${template.name}`}
-      centered
-      size="lg"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <Stack gap="md">
-        <Group grow>
-          <Select
-            label="Contact (aperçu)"
-            placeholder="Aucun contact"
-            data={contacts.map((c) => ({ value: c.id, label: c.name }))}
-            value={contactId}
-            onChange={setContactId}
-            searchable
-            clearable
-            nothingFoundMessage="Aucun contact"
-          />
-          <Select
-            label="Opportunité (aperçu)"
-            placeholder="Aucune opportunité"
-            data={opportunities.map((o) => ({ value: o.id, label: o.title }))}
-            value={opportunityId}
-            onChange={setOpportunityId}
-            searchable
-            clearable
-            nothingFoundMessage="Aucune opportunité"
-          />
-        </Group>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Aperçu — {template.name}</DialogTitle>
+        </DialogHeader>
 
-        <Card withBorder padding="lg">
-          <Stack gap="xs">
-            <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Contact (aperçu)">
+              <Select
+                value={contactId}
+                onValueChange={(v) => setContactId(String(v ?? ""))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Aucun contact" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun contact</SelectItem>
+                  {contacts.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Opportunité (aperçu)">
+              <Select
+                value={opportunityId}
+                onValueChange={(v) => setOpportunityId(String(v ?? ""))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Aucune opportunité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune opportunité</SelectItem>
+                  {opportunities.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-xl border bg-card p-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Objet
-            </Text>
-            <Text size="sm" fw={600}>
-              {subject || "—"}
-            </Text>
-            <Divider />
-            <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+            </span>
+            <p className="text-sm font-semibold">{subject || "—"}</p>
+            <div className="my-1 border-t" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Message
-            </Text>
-            <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-              {body || "—"}
-            </Text>
-          </Stack>
-        </Card>
+            </span>
+            <p className="whitespace-pre-wrap text-sm">{body || "—"}</p>
+          </div>
 
-        <Text c="dimmed" size="xs">
-          Les variables sans donnée (ex. pas d&apos;opportunité sélectionnée)
-          restent affichées entre accolades.
-        </Text>
-      </Stack>
-    </Modal>
+          <p className="text-xs text-muted-foreground">
+            Les variables sans donnée (ex. pas d&apos;opportunité sélectionnée)
+            restent affichées entre accolades.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

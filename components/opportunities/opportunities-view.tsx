@@ -3,21 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ActionIcon,
-  Anchor,
-  Badge,
-  Button,
-  Group,
-  Menu,
-  Modal,
-  SegmentedControl,
-  Select,
-  Stack,
-  Table,
-  Text,
-  TextInput,
-} from "@mantine/core";
+import { MoreHorizontal } from "lucide-react";
 
 import { deleteOpportunity } from "@/app/(app)/opportunities/actions";
 import {
@@ -34,6 +20,38 @@ import {
   STATUS_META,
   type Opportunity,
 } from "@/components/opportunities/opportunity-types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Segmented } from "@/components/ui/segmented";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type OpportunityListItem = Opportunity & {
   contact_name: string | null;
@@ -121,167 +139,157 @@ export function OpportunitiesView({
 
   return (
     <>
-      <Group justify="space-between" align="center" mb="lg">
+      <div className="mb-6 flex items-center justify-between gap-3">
         {opportunities.length > 0 ? (
-          <SegmentedControl
+          <Segmented
             value={view}
-            onChange={(v) => changeView(v as DatesViewMode)}
-            data={[
+            onChange={changeView}
+            options={[
               { label: "Kanban", value: "kanban" },
               { label: "Liste", value: "list" },
               { label: "Calendrier", value: "calendar" },
             ]}
           />
         ) : (
-          <Text c="dimmed" size="sm">
-            {opportunities.length} date
-            {opportunities.length > 1 ? "s" : ""}
-          </Text>
+          <p className="text-sm text-muted-foreground">
+            {opportunities.length} date{opportunities.length > 1 ? "s" : ""}
+          </p>
         )}
         <Button onClick={openCreate}>Ajouter une date</Button>
-      </Group>
+      </div>
 
       {opportunities.length === 0 ? (
-        <Stack align="center" gap="xs" py={64}>
-          <Text fw={700}>Aucune date pour l&apos;instant</Text>
-          <Text c="dimmed" size="sm" ta="center" maw={380}>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="font-semibold">Aucune date pour l&apos;instant</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
             Crée ta première date pour suivre une piste de concert, de la prise
             de contact jusqu&apos;au concert confirmé.
-          </Text>
-          <Button onClick={openCreate} mt="sm">
+          </p>
+          <Button onClick={openCreate} className="mt-2">
             Ajouter une date
           </Button>
-        </Stack>
+        </div>
       ) : view === "kanban" ? (
         <PipelineView opportunities={opportunities} />
       ) : view === "calendar" ? (
         <OpportunityCalendar opportunities={opportunities} />
       ) : (
-        <Stack gap="md">
-          <Group>
-            <TextInput
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
               placeholder="Rechercher un titre, une ville, un contact…"
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
-              flex={1}
+              className="sm:flex-1"
             />
             <Select
-              data={STATUS_FILTER_OPTIONS}
               value={status}
-              onChange={(v) => setStatus(v ?? "")}
-              allowDeselect={false}
-              w={200}
-            />
-          </Group>
+              onValueChange={(v) => setStatus(String(v ?? ""))}
+            >
+              <SelectTrigger className="w-full sm:w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {filtered.length === 0 ? (
-            <Text c="dimmed" size="sm" py="xl" ta="center">
+            <p className="py-10 text-center text-sm text-muted-foreground">
               Aucune date ne correspond à ta recherche.
-            </Text>
+            </p>
           ) : (
-            <Table.ScrollContainer minWidth={760}>
-              <Table verticalSpacing="sm" highlightOnHover>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Titre</Table.Th>
-                    <Table.Th>Statut</Table.Th>
-                    <Table.Th>Contact / Organisation</Table.Th>
-                    <Table.Th>Lieu</Table.Th>
-                    <Table.Th>Date</Table.Th>
-                    <Table.Th>Cachet</Table.Th>
-                    <Table.Th w={48} />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
+            <div className="rounded-xl border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Titre</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Contact / Organisation</TableHead>
+                    <TableHead>Lieu</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Cachet</TableHead>
+                    <TableHead className="w-12" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filtered.map((o) => {
                     const meta = STATUS_META[o.status];
                     const who = o.contact_name ?? o.organization_name;
-                    const place = [o.venue, o.city]
-                      .filter(Boolean)
-                      .join(" · ");
+                    const place = [o.venue, o.city].filter(Boolean).join(" · ");
                     return (
-                      <Table.Tr key={o.id}>
-                        <Table.Td>
-                          <Anchor
-                            component={Link}
+                      <TableRow key={o.id}>
+                        <TableCell>
+                          <Link
                             href={`/opportunities/${o.id}`}
-                            fw={500}
+                            className="font-medium text-primary hover:underline"
                           >
                             {o.title}
-                          </Anchor>
-                        </Table.Td>
-                        <Table.Td>
-                          <Badge
-                            color={meta.color}
-                            variant="light"
-                            size="sm"
-                          >
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge color={meta.color}>
                             {meta.label}
-                          </Badge>
-                        </Table.Td>
-                        <Table.Td>
-                          {who ? (
-                            who
-                          ) : (
-                            <Text c="dimmed" size="sm">
-                              —
-                            </Text>
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          {place ? (
-                            place
-                          ) : (
-                            <Text c="dimmed" size="sm">
-                              —
-                            </Text>
-                          )}
-                        </Table.Td>
-                        <Table.Td>{formatGigDate(o.gig_date)}</Table.Td>
-                        <Table.Td>
-                          <Text size="sm" ff="monospace">
-                            {formatFee(o.fee)}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Menu position="bottom-end" withArrow>
-                            <Menu.Target>
-                              <ActionIcon
-                                variant="subtle"
-                                color="gray"
-                                aria-label="Actions"
-                              >
-                                ⋯
-                              </ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                              <Menu.Item onClick={() => openEdit(o)}>
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {who ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {place || "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatGigDate(o.gig_date)}
+                        </TableCell>
+                        <TableCell className="font-mono tabular-nums">
+                          {formatFee(o.fee)}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Actions"
+                                />
+                              }
+                            >
+                              <MoreHorizontal />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openEdit(o)}>
                                 Modifier
-                              </Menu.Item>
-                              <Menu.Item
-                                color="red"
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
                                 onClick={() => setDeleting(o)}
                               >
                                 Supprimer
-                              </Menu.Item>
-                            </Menu.Dropdown>
-                          </Menu>
-                        </Table.Td>
-                      </Table.Tr>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </Table.Tbody>
+                </TableBody>
               </Table>
-            </Table.ScrollContainer>
+            </div>
           )}
 
-          <Text c="dimmed" size="xs">
+          <p className="text-xs text-muted-foreground">
             {filtered.length} affichée{filtered.length > 1 ? "s" : ""}
             {filtered.length !== opportunities.length
               ? ` sur ${opportunities.length}`
               : ""}
-          </Text>
-        </Stack>
+          </p>
+        </div>
       )}
 
       {formOpen && (
@@ -295,39 +303,39 @@ export function OpportunitiesView({
         />
       )}
 
-      <Modal
-        opened={deleting !== null}
-        onClose={() => setDeleting(null)}
-        title="Supprimer la date"
-        centered
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            confirmDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{deleting?.title}</b> ? Cette action est
-              irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setDeleting(null)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeletePending}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la date</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{deleting?.title}</b> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletePending}
+              onClick={confirmDelete}
+            >
+              {isDeletePending ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

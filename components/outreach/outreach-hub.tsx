@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs } from "@mantine/core";
 
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { SequencesList } from "@/components/sequences/sequences-list";
 import { type SequenceListItem } from "@/components/sequences/sequence-types";
 import { TemplatesView } from "@/components/templates/templates-view";
@@ -38,7 +38,7 @@ export function OutreachHub({
 
   // Sync de l'onglet dans l'URL (?tab=…) sans refetch : l'état local reste la
   // source de vérité, l'onglet courant devient partageable / persistant.
-  function changeTab(next: string | null) {
+  function changeTab(next: unknown) {
     if (next !== "sequences" && next !== "templates" && next !== "inbox") return;
     setTab(next);
     window.history.replaceState(
@@ -49,29 +49,29 @@ export function OutreachHub({
   }
 
   return (
-    <Tabs value={tab} onChange={changeTab} keepMounted={false}>
-      <Tabs.List mb="lg">
-        <Tabs.Tab value="sequences">Séquences</Tabs.Tab>
-        <Tabs.Tab value="templates">Modèles</Tabs.Tab>
-        <Tabs.Tab value="inbox">Réception</Tabs.Tab>
-      </Tabs.List>
+    <Tabs value={tab} onValueChange={changeTab}>
+      <TabsList>
+        <TabsTab value="sequences">Séquences</TabsTab>
+        <TabsTab value="templates">Modèles</TabsTab>
+        <TabsTab value="inbox">Réception</TabsTab>
+      </TabsList>
 
-      <Tabs.Panel value="sequences">
+      <TabsPanel value="sequences">
         <SequencesList sequences={sequences} />
-      </Tabs.Panel>
+      </TabsPanel>
 
-      <Tabs.Panel value="templates">
+      <TabsPanel value="templates">
         <TemplatesView
           templates={templates}
           contacts={previewContacts}
           opportunities={previewOpportunities}
           artistName={artistName}
         />
-      </Tabs.Panel>
+      </TabsPanel>
 
-      <Tabs.Panel value="inbox">
+      <TabsPanel value="inbox">
         <InboxView items={inboxItems} />
-      </Tabs.Panel>
+      </TabsPanel>
     </Tabs>
   );
 }

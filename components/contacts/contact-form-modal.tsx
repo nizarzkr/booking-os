@@ -1,21 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Group,
-  Modal,
-  Select,
-  Stack,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
-import { useForm } from "@mantine/form";
 
 import { createContact, updateContact } from "@/app/(app)/contacts/actions";
-import { type ContactInput } from "@/components/contacts/contact-input";
+import {
+  EMAIL_RE,
+  type ContactInput,
+} from "@/components/contacts/contact-input";
 import { ROLE_SELECT_OPTIONS, type Contact } from "@/components/contacts/roles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   onClose: () => void;
@@ -23,34 +33,48 @@ type Props = {
   contact: Contact | null; // null = création
 };
 
+const ROLE_OPTIONS = [{ value: "", label: "Aucun rôle" }, ...ROLE_SELECT_OPTIONS];
+
 /**
  * Monté uniquement quand le formulaire est ouvert (voir ContactsView), et
- * remonté via `key` selon la cible → initialValues frais, aucun useEffect.
+ * remonté via `key` selon la cible → valeurs initiales fraîches.
  */
 export function ContactFormModal({ onClose, onSaved, contact }: Props) {
+  const [firstName, setFirstName] = useState(contact?.first_name ?? "");
+  const [lastName, setLastName] = useState(contact?.last_name ?? "");
+  const [email, setEmail] = useState(contact?.email ?? "");
+  const [phone, setPhone] = useState(contact?.phone ?? "");
+  const [role, setRole] = useState<string>(contact?.role ?? "");
+  const [notes, setNotes] = useState(contact?.notes ?? "");
+
+  const [errors, setErrors] = useState<{ first_name?: string; email?: string }>(
+    {},
+  );
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const form = useForm({
-    mode: "uncontrolled",
-    initialValues: {
-      first_name: contact?.first_name ?? "",
-      last_name: contact?.last_name ?? "",
-      email: contact?.email ?? "",
-      phone: contact?.phone ?? "",
-      role: contact?.role ?? null,
-      notes: contact?.notes ?? "",
-    },
-    validate: {
-      first_name: (v) => (v.trim() ? null : "Ce champ est requis."),
-      email: (v) => (!v || /^\S+@\S+\.\S+$/.test(v) ? null : "Email invalide."),
-    },
-  });
+  function validate() {
+    const next: { first_name?: string; email?: string } = {};
+    if (!firstName.trim()) next.first_name = "Ce champ est requis.";
+    if (email && !EMAIL_RE.test(email)) next.email = "Email invalide.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
 
-  const handleSubmit = form.onSubmit(async (values) => {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validate()) return;
+
     setLoading(true);
     setServerError(null);
-    const input: ContactInput = values;
+    const input: ContactInput = {
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      role: role || null,
+      notes,
+    };
     const result = contact
       ? await updateContact(contact.id, input)
       : await createContact(input);
@@ -61,82 +85,115 @@ export function ContactFormModal({ onClose, onSaved, contact }: Props) {
       return;
     }
     onSaved();
-  });
+  }
 
   return (
-    <Modal
-      opened
-      onClose={onClose}
-      title={contact ? "Modifier le contact" : "Nouveau contact"}
-      centered
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <form onSubmit={handleSubmit}>
-        <Stack gap="sm">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {contact ? "Modifier le contact" : "Nouveau contact"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {serverError && (
-            <Alert color="red" variant="light" radius="md">
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {serverError}
-            </Alert>
+            </div>
           )}
 
-          <Group grow>
-            <TextInput
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
               label="Prénom / nom"
-              placeholder="Camille Durand"
+              htmlFor="first_name"
               required
-              key={form.key("first_name")}
-              {...form.getInputProps("first_name")}
-            />
-            <TextInput
-              label="Nom (optionnel)"
-              placeholder="Durand"
-              key={form.key("last_name")}
-              {...form.getInputProps("last_name")}
-            />
-          </Group>
+              error={errors.first_name}
+            >
+              <Input
+                id="first_name"
+                placeholder="Camille Durand"
+                value={firstName}
+                onChange={(e) => setFirstName(e.currentTarget.value)}
+              />
+            </Field>
+            <Field label="Nom (optionnel)" htmlFor="last_name">
+              <Input
+                id="last_name"
+                placeholder="Durand"
+                value={lastName}
+                onChange={(e) => setLastName(e.currentTarget.value)}
+              />
+            </Field>
+          </div>
 
-          <TextInput
-            label="Email"
-            placeholder="camille@salle.fr"
-            key={form.key("email")}
-            {...form.getInputProps("email")}
-          />
-
-          <Group grow>
-            <TextInput
-              label="Téléphone"
-              placeholder="06 12 34 56 78"
-              key={form.key("phone")}
-              {...form.getInputProps("phone")}
+          <Field label="Email" htmlFor="email" error={errors.email}>
+            <Input
+              id="email"
+              type="email"
+              placeholder="camille@salle.fr"
+              value={email}
+              onChange={(e) => setEmail(e.currentTarget.value)}
             />
-            <Select
-              label="Rôle"
-              placeholder="Choisir…"
-              data={ROLE_SELECT_OPTIONS}
-              clearable
-              key={form.key("role")}
-              {...form.getInputProps("role")}
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Téléphone" htmlFor="phone">
+              <Input
+                id="phone"
+                placeholder="06 12 34 56 78"
+                value={phone}
+                onChange={(e) => setPhone(e.currentTarget.value)}
+              />
+            </Field>
+            <Field label="Rôle">
+              <Select
+                value={role}
+                onValueChange={(v) => setRole(String(v ?? ""))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choisir…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="Notes" htmlFor="notes">
+            <Textarea
+              id="notes"
+              placeholder="Contexte, historique, préférences…"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.currentTarget.value)}
             />
-          </Group>
+          </Field>
 
-          <Textarea
-            label="Notes"
-            placeholder="Contexte, historique, préférences…"
-            autosize
-            minRows={2}
-            key={form.key("notes")}
-            {...form.getInputProps("notes")}
-          />
-
-          <Group justify="flex-end" mt="xs">
-            <Button variant="subtle" color="gray" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" loading={loading}>
-              {contact ? "Enregistrer" : "Créer le contact"}
+            <Button type="submit" disabled={loading}>
+              {loading
+                ? "Enregistrement…"
+                : contact
+                  ? "Enregistrer"
+                  : "Créer le contact"}
             </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Modal>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

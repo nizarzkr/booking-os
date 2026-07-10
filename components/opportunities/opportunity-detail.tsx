@@ -3,21 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Divider,
-  Group,
-  Modal,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import {
   deleteOpportunity,
@@ -44,6 +30,23 @@ import {
   type EmailTemplate,
   type TemplateVars,
 } from "@/components/templates/template-types";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type LinkedRef = { id: string; name: string } | null;
 
@@ -78,8 +81,6 @@ export function OpportunityDetail({
   const [emailOpen, setEmailOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Variables de template résolues depuis l'opportunité (jetons manquants
-  // laissés tels quels par renderTemplate).
   const emailVars: Partial<TemplateVars> = {
     contact_name: contact?.name || undefined,
     artist_name: artistName || undefined,
@@ -95,7 +96,7 @@ export function OpportunityDetail({
 
   const meta = STATUS_META[opportunity.status];
 
-  function handleStatusChange(next: string | null) {
+  function handleStatusChange(next: string) {
     if (!next || next === opportunity.status) return;
     startStatus(async () => {
       const input: OpportunityInput = {
@@ -111,7 +112,7 @@ export function OpportunityDetail({
       };
       const res = await updateOpportunity(opportunity.id, input);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.refresh();
@@ -122,7 +123,7 @@ export function OpportunityDetail({
     startDelete(async () => {
       const res = await deleteOpportunity(opportunity.id);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.push("/opportunities");
@@ -130,79 +131,84 @@ export function OpportunityDetail({
   }
 
   return (
-    <Stack gap="lg">
-      <Anchor component={Link} href="/opportunities" size="sm" c="dimmed">
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/opportunities"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
         ← Opportunités
-      </Anchor>
+      </Link>
 
-      <Group justify="space-between" align="flex-start">
-        <Group gap="sm" align="center">
-          <Title order={1}>{opportunity.title}</Title>
-          <Badge color={meta.color} variant="light">
-            {meta.label}
-          </Badge>
-        </Group>
-        <Group>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">{opportunity.title}</h1>
+          <StatusBadge color={meta.color}>{meta.label}</StatusBadge>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {contactEmail && (
             <Button onClick={() => setEmailOpen(true)}>Envoyer un email</Button>
           )}
-          <Button variant="default" onClick={() => setEditOpen(true)}>
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
             Modifier
           </Button>
           <Button
-            variant="subtle"
-            color="red"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10"
             onClick={() => setConfirmDelete(true)}
           >
             Supprimer
           </Button>
-        </Group>
-      </Group>
+        </div>
+      </div>
 
       {/* Infos */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Text fw={700} size="sm">
-            Informations
-          </Text>
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow label="Statut">
               <Select
-                data={STATUS_SELECT_OPTIONS}
                 value={opportunity.status}
-                onChange={handleStatusChange}
-                allowDeselect={false}
+                onValueChange={(v) => handleStatusChange(String(v))}
                 disabled={isStatusPending}
-                w={200}
-              />
+              >
+                <SelectTrigger className="w-52">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_SELECT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </InfoRow>
             <InfoRow label="Date du gig">
-              <Text size="sm">{formatGigDate(opportunity.gig_date)}</Text>
+              <span className="text-sm">{formatGigDate(opportunity.gig_date)}</span>
             </InfoRow>
             <InfoRow label="Contact">
               {contact ? (
-                <Anchor
-                  component={Link}
+                <Link
                   href={`/contacts/${contact.id}`}
-                  size="sm"
-                  fw={500}
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   {contact.name}
-                </Anchor>
+                </Link>
               ) : (
                 <Dash />
               )}
             </InfoRow>
             <InfoRow label="Organisation">
               {organization ? (
-                <Anchor
-                  component={Link}
+                <Link
                   href={`/organizations/${organization.id}`}
-                  size="sm"
-                  fw={500}
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   {organization.name}
-                </Anchor>
+                </Link>
               ) : (
                 <Dash />
               )}
@@ -214,22 +220,21 @@ export function OpportunityDetail({
               <Value>{opportunity.venue}</Value>
             </InfoRow>
             <InfoRow label="Cachet">
-              <Text size="sm" ff="monospace">
+              <span className="font-mono text-sm tabular-nums">
                 {formatFee(opportunity.fee)}
-              </Text>
+              </span>
             </InfoRow>
-          </SimpleGrid>
+          </div>
           {opportunity.notes && (
-            <>
-              <Divider />
+            <div className="border-t pt-4">
               <InfoRow label="Notes">
-                <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                <p className="whitespace-pre-wrap text-sm">
                   {opportunity.notes}
-                </Text>
+                </p>
               </InfoRow>
-            </>
+            </div>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
       {/* Tâches liées à cette opportunité */}
@@ -266,40 +271,40 @@ export function OpportunityDetail({
         />
       )}
 
-      <Modal
-        opened={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title="Supprimer l'opportunité"
-        centered
+      <Dialog
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDelete(false);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{opportunity.title}</b> ? Cette action est
-              irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setConfirmDelete(false)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeleting}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-    </Stack>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l&apos;opportunité</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{opportunity.title}</b> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmDelete(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              {isDeleting ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -311,23 +316,19 @@ function InfoRow({
   children: React.ReactNode;
 }) {
   return (
-    <Stack gap={2}>
-      <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
-      </Text>
+      </span>
       {children}
-    </Stack>
+    </div>
   );
 }
 
 function Value({ children }: { children: string | null }) {
-  return children ? <Text size="sm">{children}</Text> : <Dash />;
+  return children ? <span className="text-sm">{children}</span> : <Dash />;
 }
 
 function Dash() {
-  return (
-    <Text c="dimmed" size="sm">
-      —
-    </Text>
-  );
+  return <span className="text-sm text-muted-foreground">—</span>;
 }
