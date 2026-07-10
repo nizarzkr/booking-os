@@ -183,18 +183,23 @@ export function OpportunitiesView({
               className="sm:flex-1"
             />
             <Select
-              value={status}
-              onValueChange={(v) => setStatus(String(v ?? ""))}
+              value={status || "all"}
+              onValueChange={(v) =>
+                setStatus(String(v) === "all" ? "" : String(v ?? ""))
+              }
             >
               <SelectTrigger className="w-full sm:w-52">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_FILTER_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
+                {STATUS_FILTER_OPTIONS.map((o) => {
+                  const val = o.value === "" ? "all" : o.value;
+                  return (
+                    <SelectItem key={val} value={val}>
+                      {o.label}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

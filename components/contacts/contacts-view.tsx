@@ -138,18 +138,23 @@ export function ContactsView({
               className="sm:flex-1"
             />
             <Select
-              value={role}
-              onValueChange={(v) => setRole(String(v ?? ""))}
+              value={role || "all"}
+              onValueChange={(v) =>
+                setRole(String(v) === "all" ? "" : String(v ?? ""))
+              }
             >
               <SelectTrigger className="w-full sm:w-52">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ROLE_FILTER_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
+                {ROLE_FILTER_OPTIONS.map((o) => {
+                  const val = o.value === "" ? "all" : o.value;
+                  return (
+                    <SelectItem key={val} value={val}>
+                      {o.label}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

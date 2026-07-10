@@ -127,16 +127,24 @@ export function OrganizationsView({
               onChange={(e) => setSearch(e.currentTarget.value)}
               className="sm:flex-1"
             />
-            <Select value={type} onValueChange={(v) => setType(String(v ?? ""))}>
+            <Select
+              value={type || "all"}
+              onValueChange={(v) =>
+                setType(String(v) === "all" ? "" : String(v ?? ""))
+              }
+            >
               <SelectTrigger className="w-full sm:w-52">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ORG_TYPE_FILTER_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
+                {ORG_TYPE_FILTER_OPTIONS.map((o) => {
+                  const val = o.value === "" ? "all" : o.value;
+                  return (
+                    <SelectItem key={val} value={val}>
+                      {o.label}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
