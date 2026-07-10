@@ -1,17 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Anchor,
-  Badge,
-  Card,
-  Group,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   formatFee,
   formatGigDate,
@@ -22,6 +14,7 @@ import {
   GettingStarted,
   type SetupState,
 } from "@/components/dashboard/getting-started";
+import { cn } from "@/lib/utils";
 
 export type RelanceItem = {
   id: string;
@@ -65,46 +58,38 @@ export function DashboardView({
   setup,
 }: Props) {
   return (
-    <Stack gap="lg">
-      <Stack gap={2}>
-        <Title order={1}>Aujourd&apos;hui</Title>
-        <Text c="dimmed" size="sm" tt="capitalize">
-          {todayLabel}
-        </Text>
-      </Stack>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-0.5">
+        <h1 className="text-2xl font-semibold">Aujourd&apos;hui</h1>
+        <p className="text-sm capitalize text-muted-foreground">{todayLabel}</p>
+      </div>
 
       {/* Démarrage (masqué une fois les 3 étapes faites) */}
       <GettingStarted setup={setup} />
 
       {/* Nouvelles réponses entrantes */}
       {counts.unreadInbox > 0 && (
-        <Card
-          withBorder
-          padding="md"
-          radius="lg"
-          component={Link}
+        <Link
           href="/outreach?tab=inbox"
-          className="interactive-card"
-          style={{
-            textDecoration: "none",
-            borderColor: "var(--mantine-color-green-6)",
-          }}
+          className="interactive-card block rounded-xl"
         >
-          <Group gap="sm" wrap="nowrap">
-            <Badge color="green" variant="filled" size="lg">
-              {counts.unreadInbox}
-            </Badge>
-            <Text fw={600} size="sm">
-              {counts.unreadInbox > 1
-                ? "nouvelles réponses à lire"
-                : "nouvelle réponse à lire"}
-            </Text>
-          </Group>
-        </Card>
+          <Card className="ring-primary/40">
+            <CardContent className="flex items-center gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground tabular-nums">
+                {counts.unreadInbox}
+              </span>
+              <span className="text-sm font-medium">
+                {counts.unreadInbox > 1
+                  ? "nouvelles réponses à lire"
+                  : "nouvelle réponse à lire"}
+              </span>
+            </CardContent>
+          </Card>
+        </Link>
       )}
 
       {/* Compteurs rapides */}
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Contacts" value={counts.contacts} href="/contacts" />
         <StatCard
           label="Opportunités actives"
@@ -117,141 +102,149 @@ export function DashboardView({
           href="/tasks"
           alert={counts.overdue > 0}
         />
-      </SimpleGrid>
+      </div>
 
       {/* À relancer aujourd'hui */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Group justify="space-between" align="center">
-            <Text fw={700}>À relancer aujourd&apos;hui</Text>
-            <Anchor component={Link} href="/tasks" size="sm">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>À relancer aujourd&apos;hui</CardTitle>
+            <Link
+              href="/tasks"
+              className="text-sm text-primary hover:underline"
+            >
               Toutes les tâches
-            </Anchor>
-          </Group>
-
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
           {relance.length === 0 ? (
-            <Text c="dimmed" size="sm">
+            <p className="text-sm text-muted-foreground">
               Rien à relancer aujourd&apos;hui. 🎉
-            </Text>
+            </p>
           ) : (
-            <Stack gap="xs">
+            <ul className="flex flex-col gap-2">
               {relance.map((t) => {
                 const meta = dueMeta({ due_date: t.due_date, done: false });
                 return (
-                  <Group key={t.id} justify="space-between" wrap="nowrap">
-                    <Group gap="sm" wrap="nowrap">
-                      <Text size="sm" fw={500}>
+                  <li
+                    key={t.id}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-medium">
                         {t.title}
-                      </Text>
+                      </span>
                       {meta && (
-                        <Badge
-                          color={meta.color}
-                          variant="light"
-                          size="sm"
-                        >
+                        <StatusBadge color={meta.color}>
                           {meta.label}
-                        </Badge>
+                        </StatusBadge>
                       )}
-                    </Group>
-                    <Group gap="sm" wrap="nowrap">
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
                       {t.href && t.linkLabel && (
-                        <Anchor component={Link} href={t.href} size="sm">
+                        <Link
+                          href={t.href}
+                          className="text-sm text-primary hover:underline"
+                        >
                           {t.linkLabel}
-                        </Anchor>
+                        </Link>
                       )}
-                      <Text c="dimmed" size="sm">
+                      <span className="text-sm text-muted-foreground">
                         {formatDueDate(t.due_date)}
-                      </Text>
-                    </Group>
-                  </Group>
+                      </span>
+                    </div>
+                  </li>
                 );
               })}
-            </Stack>
+            </ul>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Prochaines dates confirmées */}
-        <Card withBorder padding="lg">
-          <Stack gap="sm">
-            <Text fw={700}>Prochaines dates confirmées</Text>
-            <Text c="dimmed" size="xs">
+        <Card>
+          <CardHeader>
+            <CardTitle>Prochaines dates confirmées</CardTitle>
+            <p className="text-xs text-muted-foreground">
               Dans les 30 prochains jours
-            </Text>
+            </p>
+          </CardHeader>
+          <CardContent>
             {confirmed.length === 0 ? (
-              <Text c="dimmed" size="sm">
+              <p className="text-sm text-muted-foreground">
                 Aucune date confirmée à venir.
-              </Text>
+              </p>
             ) : (
-              <Stack gap="xs">
+              <ul className="flex flex-col gap-2">
                 {confirmed.map((o) => (
-                  <Group key={o.id} justify="space-between" wrap="nowrap">
-                    <Anchor
-                      component={Link}
+                  <li
+                    key={o.id}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <Link
                       href={`/opportunities/${o.id}`}
-                      size="sm"
-                      fw={500}
+                      className="truncate text-sm font-medium text-primary hover:underline"
                     >
                       {o.title}
-                    </Anchor>
-                    <Group gap="sm" wrap="nowrap">
+                    </Link>
+                    <div className="flex shrink-0 items-center gap-3">
                       {o.fee !== null && (
-                        <Text size="sm" ff="monospace">
+                        <span className="font-mono text-sm tabular-nums">
                           {formatFee(o.fee)}
-                        </Text>
+                        </span>
                       )}
-                      <Text c="dimmed" size="sm">
+                      <span className="text-sm text-muted-foreground">
                         {formatGigDate(o.gig_date)}
-                      </Text>
-                    </Group>
-                  </Group>
+                      </span>
+                    </div>
+                  </li>
                 ))}
-              </Stack>
+              </ul>
             )}
-          </Stack>
+          </CardContent>
         </Card>
 
         {/* Options en cours */}
-        <Card withBorder padding="lg">
-          <Stack gap="sm">
-            <Group gap="sm">
-              <Text fw={700}>Options en cours</Text>
-              <Badge
-                color={STATUS_META.option.color}
-                variant="light"
-                size="sm"
-              >
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle>Options en cours</CardTitle>
+              <StatusBadge color={STATUS_META.option.color}>
                 {STATUS_META.option.label}
-              </Badge>
-            </Group>
+              </StatusBadge>
+            </div>
+          </CardHeader>
+          <CardContent>
             {options.length === 0 ? (
-              <Text c="dimmed" size="sm">
+              <p className="text-sm text-muted-foreground">
                 Aucune option en attente.
-              </Text>
+              </p>
             ) : (
-              <Stack gap="xs">
+              <ul className="flex flex-col gap-2">
                 {options.map((o) => (
-                  <Group key={o.id} justify="space-between" wrap="nowrap">
-                    <Anchor
-                      component={Link}
+                  <li
+                    key={o.id}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <Link
                       href={`/opportunities/${o.id}`}
-                      size="sm"
-                      fw={500}
+                      className="truncate text-sm font-medium text-primary hover:underline"
                     >
                       {o.title}
-                    </Anchor>
-                    <Text c="dimmed" size="sm">
+                    </Link>
+                    <span className="text-sm text-muted-foreground">
                       {formatGigDate(o.gig_date)}
-                    </Text>
-                  </Group>
+                    </span>
+                  </li>
                 ))}
-              </Stack>
+              </ul>
             )}
-          </Stack>
+          </CardContent>
         </Card>
-      </SimpleGrid>
-    </Stack>
+      </div>
+    </div>
   );
 }
 
@@ -267,28 +260,22 @@ function StatCard({
   alert?: boolean;
 }) {
   return (
-    <Card
-      withBorder
-      padding="lg"
-      component={Link}
-      href={href}
-      className="interactive-card"
-      style={{ textDecoration: "none" }}
-    >
-      <Stack gap={4}>
-        <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
-          {label}
-        </Text>
-        <Text
-          fw={600}
-          fz={32}
-          ff="monospace"
-          c={alert ? "red.5" : undefined}
-          style={{ lineHeight: 1.1 }}
-        >
-          {value}
-        </Text>
-      </Stack>
-    </Card>
+    <Link href={href} className="interactive-card block rounded-xl">
+      <Card>
+        <CardContent className="flex flex-col gap-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </span>
+          <span
+            className={cn(
+              "font-mono text-3xl font-semibold leading-tight tabular-nums",
+              alert && "text-destructive",
+            )}
+          >
+            {value}
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

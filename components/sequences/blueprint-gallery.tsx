@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Badge,
-  Button,
-  Card,
-  Group,
-  Modal,
-  Stack,
-  Text,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { createSequenceFromBlueprint } from "@/app/(app)/sequences/actions";
 import { SEQUENCE_BLUEPRINTS } from "@/components/sequences/sequence-blueprints";
 import { formatDelay } from "@/components/sequences/sequence-types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function BlueprintGallery({
   opened,
@@ -32,79 +33,75 @@ export function BlueprintGallery({
     const res = await createSequenceFromBlueprint(id);
     setPendingId(null);
     if ("error" in res) {
-      notifications.show({ color: "red", message: res.error });
+      toast.error(res.error);
       return;
     }
-    notifications.show({
-      color: "green",
-      message: "Séquence créée à partir du modèle. À toi de la personnaliser !",
-    });
+    toast.success(
+      "Séquence créée à partir du modèle. À toi de la personnaliser !",
+    );
     onClose();
     router.push(`/sequences/${res.id}`);
   }
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title="Partir d'un modèle"
-      size="lg"
-      centered
+    <Dialog
+      open={opened}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <Stack gap="md">
-        <Text c="dimmed" size="sm">
-          Des séquences prêtes à l&apos;emploi pour les situations de booking
-          les plus courantes. Choisis-en une : elle est copiée dans tes
-          séquences, tu la personnalises ensuite (les crochets [ … ] sont à
-          remplir).
-        </Text>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Partir d&apos;un modèle</DialogTitle>
+        </DialogHeader>
 
-        {SEQUENCE_BLUEPRINTS.map((bp) => (
-          <Card key={bp.id} withBorder padding="md" radius="md">
-            <Stack gap="xs">
-              <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Text fw={600}>{bp.name}</Text>
-                <Badge variant="light" color="gray" style={{ flexShrink: 0 }}>
-                  {bp.audience}
-                </Badge>
-              </Group>
+        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+          <p className="text-sm text-muted-foreground">
+            Des séquences prêtes à l&apos;emploi pour les situations de booking
+            les plus courantes. Choisis-en une : elle est copiée dans tes
+            séquences, tu la personnalises ensuite (les crochets [ … ] sont à
+            remplir).
+          </p>
 
-              <Text c="dimmed" size="sm">
-                {bp.description}
-              </Text>
+          {SEQUENCE_BLUEPRINTS.map((bp) => (
+            <Card key={bp.id}>
+              <CardContent className="flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold">{bp.name}</p>
+                  <Badge variant="secondary" className="shrink-0">
+                    {bp.audience}
+                  </Badge>
+                </div>
 
-              <Stack gap={4} mt={4}>
-                {bp.steps.map((step, i) => (
-                  <Group key={i} gap="xs" wrap="nowrap">
-                    <Badge
-                      variant="light"
-                      color="blue"
-                      size="sm"
-                      style={{ flexShrink: 0 }}
-                    >
-                      {formatDelay(step.delay_days)}
-                    </Badge>
-                    <Text size="sm" c="dimmed" truncate>
-                      {step.subject}
-                    </Text>
-                  </Group>
-                ))}
-              </Stack>
+                <p className="text-sm text-muted-foreground">{bp.description}</p>
 
-              <Group justify="flex-end" mt="xs">
-                <Button
-                  size="sm"
-                  onClick={() => applyBlueprint(bp.id)}
-                  loading={pendingId === bp.id}
-                  disabled={pendingId !== null && pendingId !== bp.id}
-                >
-                  Utiliser ce modèle
-                </Button>
-              </Group>
-            </Stack>
-          </Card>
-        ))}
-      </Stack>
-    </Modal>
+                <div className="mt-1 flex flex-col gap-1">
+                  {bp.steps.map((step, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <StatusBadge color="blue" className="shrink-0">
+                        {formatDelay(step.delay_days)}
+                      </StatusBadge>
+                      <span className="truncate text-sm text-muted-foreground">
+                        {step.subject}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-1 flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => applyBlueprint(bp.id)}
+                    disabled={pendingId !== null}
+                  >
+                    {pendingId === bp.id ? "Création…" : "Utiliser ce modèle"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

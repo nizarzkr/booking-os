@@ -3,20 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ActionIcon,
-  Anchor,
-  Badge,
-  Button,
-  Group,
-  Menu,
-  Modal,
-  Select,
-  Stack,
-  Table,
-  Text,
-  TextInput,
-} from "@mantine/core";
+import { MoreHorizontal } from "lucide-react";
 
 import { deleteContact } from "@/app/(app)/contacts/actions";
 import { ContactFormModal } from "@/components/contacts/contact-form-modal";
@@ -28,6 +15,37 @@ import {
 } from "@/components/contacts/roles";
 import { EnrollToSequenceModal } from "@/components/sequences/enroll-to-sequence-modal";
 import { type Sequence } from "@/components/sequences/sequence-types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function ContactsView({
   contacts,
@@ -87,136 +105,143 @@ export function ContactsView({
 
   return (
     <>
-      <Group justify="space-between" align="center" mb="lg">
-        <Text c="dimmed" size="sm">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
           {contacts.length} contact{contacts.length > 1 ? "s" : ""}
-        </Text>
-        <Group gap="sm">
-          <Button component={Link} href="/contacts/import" variant="default">
+        </p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" render={<Link href="/contacts/import" />}>
             Importer un CSV
           </Button>
           <Button onClick={openCreate}>Ajouter un contact</Button>
-        </Group>
-      </Group>
+        </div>
+      </div>
 
       {contacts.length === 0 ? (
-        <Stack align="center" gap="xs" py={64}>
-          <Text fw={700}>Aucun contact pour l&apos;instant</Text>
-          <Text c="dimmed" size="sm" ta="center" maw={360}>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="font-semibold">Aucun contact pour l&apos;instant</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
             Ajoute tes salles, festivals et programmateurs pour commencer à
             suivre tes opportunités.
-          </Text>
-          <Button onClick={openCreate} mt="sm">
+          </p>
+          <Button onClick={openCreate} className="mt-2">
             Ajouter un contact
           </Button>
-        </Stack>
+        </div>
       ) : (
-        <Stack gap="md">
-          <Group>
-            <TextInput
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
               placeholder="Rechercher un nom ou un email…"
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
-              flex={1}
+              className="sm:flex-1"
             />
             <Select
-              data={ROLE_FILTER_OPTIONS}
               value={role}
-              onChange={(v) => setRole(v ?? "")}
-              allowDeselect={false}
-              w={200}
-            />
-          </Group>
+              onValueChange={(v) => setRole(String(v ?? ""))}
+            >
+              <SelectTrigger className="w-full sm:w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLE_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {filtered.length === 0 ? (
-            <Text c="dimmed" size="sm" py="xl" ta="center">
+            <p className="py-10 text-center text-sm text-muted-foreground">
               Aucun contact ne correspond à ta recherche.
-            </Text>
+            </p>
           ) : (
-            <Table.ScrollContainer minWidth={640}>
-              <Table verticalSpacing="sm" highlightOnHover>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Nom</Table.Th>
-                    <Table.Th>Rôle</Table.Th>
-                    <Table.Th>Email</Table.Th>
-                    <Table.Th>Téléphone</Table.Th>
-                    <Table.Th w={48} />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
+            <div className="rounded-xl border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Rôle</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead className="w-12" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filtered.map((c) => {
                     const meta = c.role ? ROLE_META[c.role] : null;
                     return (
-                      <Table.Tr key={c.id}>
-                        <Table.Td>
-                          <Anchor
-                            component={Link}
+                      <TableRow key={c.id}>
+                        <TableCell>
+                          <Link
                             href={`/contacts/${c.id}`}
-                            fw={500}
+                            className="font-medium text-primary hover:underline"
                           >
                             {fullName(c)}
-                          </Anchor>
-                        </Table.Td>
-                        <Table.Td>
+                          </Link>
+                        </TableCell>
+                        <TableCell>
                           {meta ? (
-                            <Badge
-                              color={meta.color}
-                              variant="light"
-                              size="sm"
-                            >
-                              {meta.label}
-                            </Badge>
+                            <Badge variant="secondary">{meta.label}</Badge>
                           ) : (
-                            <Text c="dimmed" size="sm">
+                            <span className="text-sm text-muted-foreground">
                               —
-                            </Text>
+                            </span>
                           )}
-                        </Table.Td>
-                        <Table.Td>{c.email ?? "—"}</Table.Td>
-                        <Table.Td>{c.phone ?? "—"}</Table.Td>
-                        <Table.Td>
-                          <Menu position="bottom-end" withArrow>
-                            <Menu.Target>
-                              <ActionIcon
-                                variant="subtle"
-                                color="gray"
-                                aria-label="Actions"
-                              >
-                                ⋯
-                              </ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                              <Menu.Item onClick={() => openEdit(c)}>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {c.email ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {c.phone ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Actions"
+                                />
+                              }
+                            >
+                              <MoreHorizontal />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openEdit(c)}>
                                 Modifier
-                              </Menu.Item>
-                              <Menu.Item onClick={() => setEnrolling(c)}>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setEnrolling(c)}>
                                 Ajouter à une séquence
-                              </Menu.Item>
-                              <Menu.Item
-                                color="red"
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
                                 onClick={() => setDeleting(c)}
                               >
                                 Supprimer
-                              </Menu.Item>
-                            </Menu.Dropdown>
-                          </Menu>
-                        </Table.Td>
-                      </Table.Tr>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </Table.Tbody>
+                </TableBody>
               </Table>
-            </Table.ScrollContainer>
+            </div>
           )}
 
-          <Text c="dimmed" size="xs">
+          <p className="text-xs text-muted-foreground">
             {filtered.length} affiché{filtered.length > 1 ? "s" : ""}
             {filtered.length !== contacts.length
               ? ` sur ${contacts.length}`
               : ""}
-          </Text>
-        </Stack>
+          </p>
+        </div>
       )}
 
       {formOpen && (
@@ -236,39 +261,39 @@ export function ContactsView({
         />
       )}
 
-      <Modal
-        opened={deleting !== null}
-        onClose={() => setDeleting(null)}
-        title="Supprimer le contact"
-        centered
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            confirmDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{deleting ? fullName(deleting) : ""}</b> ? Cette
-              action est irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setDeleting(null)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeletePending}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le contact</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{deleting ? fullName(deleting) : ""}</b> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletePending}
+              onClick={confirmDelete}
+            >
+              {isDeletePending ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -3,17 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import dayjs from "dayjs";
-import {
-  Anchor,
-  Badge,
-  Box,
-  Card,
-  Group,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
-import { Calendar } from "@mantine/dates";
 
 import {
   formatFee,
@@ -22,23 +11,27 @@ import {
 } from "@/components/opportunities/opportunity-types";
 import { type OpportunityListItem } from "@/components/opportunities/opportunities-view";
 import { todayISO } from "@/lib/utils/date";
+import { Calendar } from "@/components/ui/calendar";
+import { Card } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 type Props = {
   opportunities: OpportunityListItem[];
 };
 
-// Petite pastille colorée (couleur du statut) affichée dans une case de jour.
-function StatusDot({ color }: { color: string }) {
-  return (
-    <Box
-      w={6}
-      h={6}
-      style={{
-        borderRadius: "50%",
-        backgroundColor: `var(--mantine-color-${color}-6)`,
-      }}
-    />
-  );
+const DOT_COLOR: Record<string, string> = {
+  gray: "#8a857a",
+  blue: "#3e6dae",
+  yellow: "#c08a2e",
+  violet: "#6d5ac0",
+  green: "#1e8a5f",
+  red: "#c15a54",
+};
+
+function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
 export function OpportunityCalendar({ opportunities }: Props) {
@@ -58,87 +51,97 @@ export function OpportunityCalendar({ opportunities }: Props) {
   }, [opportunities]);
 
   const selectedGigs = byDay.get(selected) ?? [];
+  const selectedDate = isoToDate(selected);
 
   return (
-    <Stack gap="lg" align="flex-start">
-      <Card withBorder padding="md" radius="lg">
+    <div className="flex w-full max-w-md flex-col gap-5">
+      <Card className="w-fit p-3">
         <Calendar
-          defaultDate={selected}
-          highlightToday
-          getDayProps={(dateStr) => ({
-            selected: dateStr === selected,
-            onClick: () => setSelected(dateStr),
-          })}
-          renderDay={(dateStr) => {
-            const gigs = byDay.get(dateStr) ?? [];
-            const dayNumber = dayjs(dateStr).date();
-            return (
-              <Stack gap={2} align="center" justify="center">
-                <Text size="sm" lh={1}>
-                  {dayNumber}
-                </Text>
-                {gigs.length > 0 && (
-                  <Tooltip
-                    label={gigs.map((g) => g.title).join(" · ")}
-                    withArrow
-                    position="bottom"
-                  >
-                    <Group gap={2} wrap="nowrap" justify="center">
+          mode="single"
+          selected={selectedDate}
+          defaultMonth={selectedDate}
+          onSelect={(d) => {
+            if (d) setSelected(dayjs(d).format("YYYY-MM-DD"));
+          }}
+          classNames={{ day: "h-11 w-9 p-0 text-center text-sm" }}
+          components={{
+            DayButton: ({ day, modifiers, ...props }) => {
+              const key = dayjs(day.date).format("YYYY-MM-DD");
+              const gigs = byDay.get(key) ?? [];
+              return (
+                <button
+                  {...props}
+                  className={cn(
+                    "flex h-11 w-9 flex-col items-center justify-center gap-1 rounded-md font-normal transition-colors hover:bg-accent hover:text-foreground",
+                    modifiers.today &&
+                      !modifiers.selected &&
+                      "font-semibold text-primary",
+                    modifiers.selected &&
+                      "bg-primary text-primary-foreground hover:bg-primary",
+                    modifiers.outside && "text-muted-foreground/50",
+                  )}
+                >
+                  <span>{day.date.getDate()}</span>
+                  {gigs.length > 0 && (
+                    <span className="flex gap-0.5">
                       {gigs.slice(0, 3).map((g) => (
-                        <StatusDot
+                        <span
                           key={g.id}
-                          color={STATUS_META[g.status].color}
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            modifiers.selected && "outline outline-1 outline-white",
+                          )}
+                          style={{
+                            backgroundColor:
+                              DOT_COLOR[STATUS_META[g.status].color] ??
+                              DOT_COLOR.gray,
+                          }}
                         />
                       ))}
-                    </Group>
-                  </Tooltip>
-                )}
-              </Stack>
-            );
+                    </span>
+                  )}
+                </button>
+              );
+            },
           }}
         />
       </Card>
 
-      <Stack gap="xs" style={{ alignSelf: "stretch" }}>
-        <Text fw={700}>{formatGigDate(selected)}</Text>
+      <div className="flex flex-col gap-2">
+        <h3 className="font-semibold capitalize">{formatGigDate(selected)}</h3>
         {selectedGigs.length === 0 ? (
-          <Text c="dimmed" size="sm">
-            Aucune date ce jour-là.
-          </Text>
+          <p className="text-sm text-muted-foreground">Aucune date ce jour-là.</p>
         ) : (
           selectedGigs.map((o) => {
             const meta = STATUS_META[o.status];
             const place = [o.venue, o.city].filter(Boolean).join(" · ");
             return (
-              <Group key={o.id} justify="space-between" wrap="nowrap">
-                <Group gap="sm" wrap="nowrap">
-                  <Anchor
-                    component={Link}
+              <div
+                key={o.id}
+                className="flex items-center justify-between gap-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
                     href={`/opportunities/${o.id}`}
-                    fw={500}
-                    size="sm"
+                    className="text-sm font-medium text-primary hover:underline"
                   >
                     {o.title}
-                  </Anchor>
-                  <Badge color={meta.color} variant="light" size="sm">
-                    {meta.label}
-                  </Badge>
+                  </Link>
+                  <StatusBadge color={meta.color}>{meta.label}</StatusBadge>
                   {place && (
-                    <Text c="dimmed" size="sm">
-                      {place}
-                    </Text>
+                    <span className="text-sm text-muted-foreground">{place}</span>
                   )}
-                </Group>
+                </div>
                 {o.fee !== null && (
-                  <Text size="sm" ff="monospace">
+                  <span className="font-mono text-sm tabular-nums">
                     {formatFee(o.fee)}
-                  </Text>
+                  </span>
                 )}
-              </Group>
+              </div>
             );
           })
         )}
-      </Stack>
-    </Stack>
+      </div>
+    </div>
   );
 }

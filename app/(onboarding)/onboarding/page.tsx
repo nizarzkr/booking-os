@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Center } from "@mantine/core";
 
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingForm } from "@/components/onboarding/onboarding-form";
@@ -22,8 +21,8 @@ export default async function OnboardingPage() {
   if (profile?.workspace_id) redirect("/dashboard");
 
   return (
-    <Center mih="100dvh" p="md">
+    <div className="flex min-h-dvh items-center justify-center p-4">
       <OnboardingForm />
-    </Center>
+    </div>
   );
 }

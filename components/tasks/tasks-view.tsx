@@ -3,21 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ActionIcon,
-  Anchor,
-  Badge,
-  Button,
-  Checkbox,
-  Group,
-  Menu,
-  Modal,
-  Select,
-  Stack,
-  Table,
-  Text,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
+import { MoreHorizontal } from "lucide-react";
 
 import { deleteTask, setTaskDone } from "@/app/(app)/tasks/actions";
 import {
@@ -32,6 +19,38 @@ import {
   type Task,
   type TaskFilter,
 } from "@/components/tasks/task-types";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export type TaskListItem = Task & {
   opportunity_title: string | null;
@@ -72,7 +91,7 @@ export function TasksView({
       const res = await setTaskDone(task.id, !task.done);
       setTogglingId(null);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.refresh();
@@ -106,149 +125,153 @@ export function TasksView({
 
   return (
     <>
-      <Group justify="space-between" align="center" mb="lg">
-        <Text c="dimmed" size="sm">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
           {tasks.length} tâche{tasks.length > 1 ? "s" : ""}
-        </Text>
+        </p>
         <Button onClick={openCreate}>Ajouter une tâche</Button>
-      </Group>
+      </div>
 
       {tasks.length === 0 ? (
-        <Stack align="center" gap="xs" py={64}>
-          <Text fw={700}>Aucune tâche pour l&apos;instant</Text>
-          <Text c="dimmed" size="sm" ta="center" maw={380}>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="font-semibold">Aucune tâche pour l&apos;instant</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
             Crée une relance ou un rappel, lié à un contact ou une opportunité,
             pour savoir quoi faire chaque jour.
-          </Text>
-          <Button onClick={openCreate} mt="sm">
+          </p>
+          <Button onClick={openCreate} className="mt-2">
             Ajouter une tâche
           </Button>
-        </Stack>
+        </div>
       ) : (
-        <Stack gap="md">
-          <Group>
-            <Select
-              data={TASK_FILTER_OPTIONS}
-              value={filter}
-              onChange={(v) => setFilter((v as TaskFilter) ?? "todo")}
-              allowDeselect={false}
-              w={220}
-            />
-          </Group>
+        <div className="flex flex-col gap-4">
+          <Select
+            value={filter}
+            onValueChange={(v) => setFilter((String(v) as TaskFilter) || "todo")}
+          >
+            <SelectTrigger className="w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TASK_FILTER_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {filtered.length === 0 ? (
-            <Text c="dimmed" size="sm" py="xl" ta="center">
+            <p className="py-10 text-center text-sm text-muted-foreground">
               Aucune tâche dans ce filtre.
-            </Text>
+            </p>
           ) : (
-            <Table.ScrollContainer minWidth={720}>
-              <Table verticalSpacing="sm" highlightOnHover>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th w={40} />
-                    <Table.Th>Tâche</Table.Th>
-                    <Table.Th>Échéance</Table.Th>
-                    <Table.Th>Lié à</Table.Th>
-                    <Table.Th w={48} />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
+            <div className="rounded-xl border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10" />
+                    <TableHead>Tâche</TableHead>
+                    <TableHead>Échéance</TableHead>
+                    <TableHead>Lié à</TableHead>
+                    <TableHead className="w-12" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filtered.map((t) => {
                     const meta = dueMeta(t);
                     return (
-                      <Table.Tr key={t.id}>
-                        <Table.Td>
+                      <TableRow key={t.id}>
+                        <TableCell>
                           <Checkbox
                             checked={t.done}
-                            onChange={() => toggleDone(t)}
+                            onCheckedChange={() => toggleDone(t)}
                             disabled={togglingId === t.id}
                             aria-label="Marquer comme fait"
                           />
-                        </Table.Td>
-                        <Table.Td>
-                          <Text
-                            size="sm"
-                            fw={500}
-                            td={t.done ? "line-through" : undefined}
-                            c={t.done ? "dimmed" : undefined}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              t.done && "text-muted-foreground line-through",
+                            )}
                           >
                             {t.title}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Group gap="xs">
-                            <Text size="sm">{formatDueDate(t.due_date)}</Text>
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">
+                              {formatDueDate(t.due_date)}
+                            </span>
                             {meta && (
-                              <Badge
-                                color={meta.color}
-                                variant="light"
-                                size="sm"
-                              >
+                              <StatusBadge color={meta.color}>
                                 {meta.label}
-                              </Badge>
+                              </StatusBadge>
                             )}
-                          </Group>
-                        </Table.Td>
-                        <Table.Td>
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           {t.opportunity_id ? (
-                            <Anchor
-                              component={Link}
+                            <Link
                               href={`/opportunities/${t.opportunity_id}`}
-                              size="sm"
+                              className="text-sm text-primary hover:underline"
                             >
                               {t.opportunity_title ?? "Opportunité"}
-                            </Anchor>
+                            </Link>
                           ) : t.contact_id ? (
-                            <Anchor
-                              component={Link}
+                            <Link
                               href={`/contacts/${t.contact_id}`}
-                              size="sm"
+                              className="text-sm text-primary hover:underline"
                             >
                               {t.contact_name ?? "Contact"}
-                            </Anchor>
+                            </Link>
                           ) : (
-                            <Text c="dimmed" size="sm">
+                            <span className="text-sm text-muted-foreground">
                               —
-                            </Text>
+                            </span>
                           )}
-                        </Table.Td>
-                        <Table.Td>
-                          <Menu position="bottom-end" withArrow>
-                            <Menu.Target>
-                              <ActionIcon
-                                variant="subtle"
-                                color="gray"
-                                aria-label="Actions"
-                              >
-                                ⋯
-                              </ActionIcon>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                              <Menu.Item onClick={() => openEdit(t)}>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Actions"
+                                />
+                              }
+                            >
+                              <MoreHorizontal />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openEdit(t)}>
                                 Modifier
-                              </Menu.Item>
-                              <Menu.Item
-                                color="red"
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
                                 onClick={() => setDeleting(t)}
                               >
                                 Supprimer
-                              </Menu.Item>
-                            </Menu.Dropdown>
-                          </Menu>
-                        </Table.Td>
-                      </Table.Tr>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </Table.Tbody>
+                </TableBody>
               </Table>
-            </Table.ScrollContainer>
+            </div>
           )}
 
-          <Text c="dimmed" size="xs">
+          <p className="text-xs text-muted-foreground">
             {filtered.length} affichée{filtered.length > 1 ? "s" : ""}
             {filtered.length !== tasks.length ? ` sur ${tasks.length}` : ""}
-          </Text>
-        </Stack>
+          </p>
+        </div>
       )}
 
       {formOpen && (
@@ -262,39 +285,39 @@ export function TasksView({
         />
       )}
 
-      <Modal
-        opened={deleting !== null}
-        onClose={() => setDeleting(null)}
-        title="Supprimer la tâche"
-        centered
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            confirmDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{deleting?.title}</b> ? Cette action est
-              irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setDeleting(null)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeletePending}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la tâche</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{deleting?.title}</b> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletePending}
+              onClick={confirmDelete}
+            >
+              {isDeletePending ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

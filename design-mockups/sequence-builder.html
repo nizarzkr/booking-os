@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Builder de séquence (maquette crème)</title>
+<style>
+  :root {
+    --background:#f6f3ec; --foreground:#22201c; --card:#fff; --muted:#f0ece2;
+    --muted-foreground:#8a857a; --accent:#efebe0; --primary:#1e8a5f;
+    --destructive:#c15a54; --border:#ebe6db; --slate:#3e6dae; --violet:#6d5ac0;
+    --shadow:0 1px 2px rgba(34,32,28,.04),0 8px 24px rgba(34,32,28,.05);
+    --shadow-sm:0 1px 2px rgba(34,32,28,.05);
+    font-family:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--background);color:var(--foreground);letter-spacing:-.011em;-webkit-font-smoothing:antialiased;line-height:1.5;padding:32px 24px 80px;}
+  h1,h2,h3{letter-spacing:-.02em;font-weight:600;}
+  .wrap{max-width:760px;margin:0 auto;}
+  .back{font-size:14px;color:var(--muted-foreground);text-decoration:none;}
+  .head{display:flex;justify-content:space-between;align-items:center;margin:14px 0 22px;}
+  .head h1{font-size:24px;}
+  .btn{background:var(--primary);color:#fff;border:none;font:inherit;font-size:14px;font-weight:500;padding:8px 16px;border-radius:8px;cursor:pointer;}
+  .btn.sm{font-size:13px;padding:6px 12px;}
+  .btn.outline{background:none;color:var(--foreground);border:1px solid var(--border);}
+  .btn.ghost{background:none;color:var(--muted-foreground);border:none;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm);padding:20px;margin-bottom:24px;}
+  .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .card-head h3{font-size:15px;}
+  .chip{display:inline-flex;font-size:11px;font-weight:500;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .chip.violet{background:color-mix(in oklch,var(--violet) 16%,transparent);color:var(--violet);}
+  .chip.gray{background:color-mix(in oklch,var(--muted-foreground) 16%,transparent);color:var(--muted-foreground);}
+  .chip.slate{background:color-mix(in oklch,var(--slate) 14%,transparent);color:var(--slate);}
+  .chip.green{background:color-mix(in oklch,var(--primary) 14%,transparent);color:var(--primary);}
+  .chip.red{background:color-mix(in oklch,var(--destructive) 14%,transparent);color:var(--destructive);}
+  .step{border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px;}
+  .step .body{min-width:0;}
+  .step .badges{display:flex;gap:6px;margin-bottom:6px;}
+  .step .subj{font-size:14px;font-weight:600;}
+  .step .prev{font-size:12px;color:var(--muted-foreground);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .step .ctrls{display:flex;gap:2px;flex:none;}
+  .iconbtn{width:28px;height:28px;border:none;background:none;border-radius:7px;color:var(--muted-foreground);cursor:pointer;font-size:12px;display:grid;place-items:center;}
+  .iconbtn:hover:not(:disabled){background:var(--accent);color:var(--foreground);}
+  .iconbtn:disabled{opacity:.4;cursor:default;}
+  .enr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);}
+  .enr:first-child{border-top:none;}
+  .enr .l{display:flex;align-items:center;gap:8px;}
+  .enr .name{font-size:14px;font-weight:500;color:var(--primary);}
+  .enr .r{display:flex;align-items:center;gap:12px;}
+  .enr .next{font-size:12px;color:var(--muted-foreground);}
+  .muted{font-size:13px;color:var(--muted-foreground);}
+  /* enroll dialog snippet */
+  .dlg{max-width:420px;border:1px solid var(--border);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:16px;margin-top:6px;}
+  .dlg h4{font-size:15px;margin-bottom:10px;}
+  .check{display:flex;align-items:center;gap:9px;padding:7px 4px;font-size:14px;border-radius:8px;cursor:pointer;}
+  .check:hover{background:var(--accent);}
+  .box{width:16px;height:16px;border:1px solid var(--border);border-radius:4px;flex:none;}
+  .box.on{background:var(--primary);border-color:var(--primary);position:relative;}
+  .box.on::after{content:"✓";color:#fff;font-size:11px;position:absolute;inset:0;display:grid;place-items:center;}
+  .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+  .note{font-size:12px;color:var(--muted-foreground);margin-top:8px;}
+  .seclabel{display:inline-flex;align-items:center;gap:8px;margin:28px 0 10px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="#">← Prospection</a>
+  <div class="head">
+    <h1>Prospection salles — automne</h1>
+    <button class="btn outline">Options ▾</button>
+  </div>
+
+  <!-- Étapes -->
+  <div class="card">
+    <div class="card-head"><h3>Étapes</h3><button class="btn sm">Ajouter une étape</button></div>
+    <div class="step">
+      <div class="body">
+        <div class="badges"><span class="chip violet">Étape 1</span><span class="chip gray">Immédiat</span></div>
+        <div class="subj">Première prise de contact — {{artist_name}}</div>
+        <div class="prev">Bonjour {{contact_name}}, je me permets de vous contacter au sujet d'une date à [ville]…</div>
+      </div>
+      <div class="ctrls"><button class="iconbtn" disabled>▲</button><button class="iconbtn">▼</button><button class="iconbtn">⋯</button></div>
+    </div>
+    <div class="step">
+      <div class="body">
+        <div class="badges"><span class="chip violet">Étape 2</span><span class="chip gray">J+4</span></div>
+        <div class="subj">Petite relance</div>
+        <div class="prev">Bonjour {{contact_name}}, je reviens vers vous concernant ma proposition…</div>
+      </div>
+      <div class="ctrls"><button class="iconbtn">▲</button><button class="iconbtn" disabled>▼</button><button class="iconbtn">⋯</button></div>
+    </div>
+  </div>
+
+  <!-- Contacts enrôlés -->
+  <div class="card">
+    <div class="card-head"><h3>Contacts enrôlés</h3><button class="btn sm outline">Enrôler des contacts</button></div>
+    <div class="enr"><div class="l"><a class="name" href="#">Marie Colin</a><span class="chip green">Actif</span></div><div class="r"><span class="next">prochaine : 18 juil. à 09:00</span><button class="btn ghost sm">Arrêter</button></div></div>
+    <div class="enr"><div class="l"><a class="name" href="#">Julien Bernard</a><span class="chip slate">Terminé</span></div></div>
+    <div class="enr"><div class="l"><a class="name" href="#">Festival Les Rives</a><span class="chip red">Arrêté · a répondu</span></div></div>
+  </div>
+
+  <!-- Enroll dialog (remplace le MultiSelect Mantine par des cases à cocher) -->
+  <div class="seclabel">Fenêtre « Enrôler des contacts » (cases à cocher)</div>
+  <div class="dlg">
+    <h4>Enrôler des contacts</h4>
+    <label class="check"><span class="box on"></span> Camille Durand</label>
+    <label class="check"><span class="box"></span> Le Molotov — Marseille</label>
+    <label class="check"><span class="box on"></span> Sofia Marchetti</label>
+    <label class="check"><span class="box"></span> La Cartonnerie — Reims</label>
+    <div class="dlg-actions"><button class="btn outline sm">Annuler</button><button class="btn sm">Enrôler (2)</button></div>
+  </div>
+
+  <p class="note">Maquette statique — police système en substitut d'Inter. Le seul vrai changement fonctionnel : le sélecteur multi-contacts Mantine devient une liste de cases à cocher (plus simple, même résultat). Valide avant que je code le builder.</p>
+</div>
+</body>
+</html>

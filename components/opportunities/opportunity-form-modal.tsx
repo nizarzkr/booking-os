@@ -1,19 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Group,
-  Modal,
-  NumberInput,
-  Select,
-  Stack,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
-import { DateInput } from "@mantine/dates";
-import { useForm } from "@mantine/form";
 
 import {
   createOpportunity,
@@ -23,7 +10,27 @@ import {
 import {
   STATUS_SELECT_OPTIONS,
   type Opportunity,
+  type OpportunityStatus,
 } from "@/components/opportunities/opportunity-types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type ContactOption = { value: string; label: string };
 export type OrganizationOption = { value: string; label: string };
@@ -36,10 +43,6 @@ type Props = {
   organizationOptions: OrganizationOption[];
 };
 
-/**
- * Monté uniquement quand le formulaire est ouvert (voir OpportunitiesView), et
- * remonté via `key` selon la cible → initialValues frais, aucun useEffect.
- */
 export function OpportunityFormModal({
   onClose,
   onSaved,
@@ -47,40 +50,51 @@ export function OpportunityFormModal({
   contactOptions,
   organizationOptions,
 }: Props) {
+  const [title, setTitle] = useState(opportunity?.title ?? "");
+  const [status, setStatus] = useState<OpportunityStatus>(
+    opportunity?.status ?? "prospect",
+  );
+  const [contactId, setContactId] = useState<string>(
+    opportunity?.contact_id ?? "",
+  );
+  const [organizationId, setOrganizationId] = useState<string>(
+    opportunity?.organization_id ?? "",
+  );
+  const [gigDate, setGigDate] = useState<string | null>(
+    opportunity?.gig_date ?? null,
+  );
+  const [city, setCity] = useState(opportunity?.city ?? "");
+  const [venue, setVenue] = useState(opportunity?.venue ?? "");
+  const [fee, setFee] = useState<string>(
+    opportunity?.fee != null ? String(opportunity.fee) : "",
+  );
+  const [notes, setNotes] = useState(opportunity?.notes ?? "");
+
+  const [titleError, setTitleError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const form = useForm({
-    mode: "uncontrolled",
-    initialValues: {
-      title: opportunity?.title ?? "",
-      status: opportunity?.status ?? "prospect",
-      contact_id: opportunity?.contact_id ?? null,
-      organization_id: opportunity?.organization_id ?? null,
-      gig_date: opportunity?.gig_date ?? null,
-      city: opportunity?.city ?? "",
-      venue: opportunity?.venue ?? "",
-      fee: opportunity?.fee ?? ("" as number | string),
-      notes: opportunity?.notes ?? "",
-    },
-    validate: {
-      title: (v) => (v.trim() ? null : "Ce champ est requis."),
-    },
-  });
-
-  const handleSubmit = form.onSubmit(async (values) => {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) {
+      setTitleError("Ce champ est requis.");
+      return;
+    }
+    setTitleError(undefined);
     setLoading(true);
     setServerError(null);
+
+    const feeNum = fee.trim() === "" ? null : Number(fee);
     const input: OpportunityInput = {
-      title: values.title,
-      status: values.status,
-      contact_id: values.contact_id,
-      organization_id: values.organization_id,
-      gig_date: values.gig_date,
-      city: values.city,
-      venue: values.venue,
-      fee: typeof values.fee === "number" ? values.fee : null,
-      notes: values.notes,
+      title,
+      status,
+      contact_id: contactId || null,
+      organization_id: organizationId || null,
+      gig_date: gigDate,
+      city,
+      venue,
+      fee: feeNum != null && !Number.isNaN(feeNum) ? feeNum : null,
+      notes,
     };
     const result = opportunity
       ? await updateOpportunity(opportunity.id, input)
@@ -92,118 +106,155 @@ export function OpportunityFormModal({
       return;
     }
     onSaved();
-  });
+  }
 
   return (
-    <Modal
-      opened
-      onClose={onClose}
-      title={opportunity ? "Modifier l'opportunité" : "Nouvelle opportunité"}
-      centered
-      size="lg"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <form onSubmit={handleSubmit}>
-        <Stack gap="sm">
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {opportunity ? "Modifier l'opportunité" : "Nouvelle opportunité"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {serverError && (
-            <Alert color="red" variant="light" radius="md">
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {serverError}
-            </Alert>
+            </div>
           )}
 
-          <TextInput
-            label="Titre"
-            placeholder="Concert au Bikini — automne 2026"
-            required
-            key={form.key("title")}
-            {...form.getInputProps("title")}
-          />
-
-          <Group grow>
-            <Select
-              label="Statut"
-              data={STATUS_SELECT_OPTIONS}
-              allowDeselect={false}
-              key={form.key("status")}
-              {...form.getInputProps("status")}
+          <Field label="Titre" htmlFor="title" required error={titleError}>
+            <Input
+              id="title"
+              placeholder="Concert au Bikini — automne 2026"
+              value={title}
+              onChange={(e) => setTitle(e.currentTarget.value)}
             />
-            <DateInput
-              label="Date du gig"
-              placeholder="Choisir une date…"
-              valueFormat="D MMMM YYYY"
-              clearable
-              key={form.key("gig_date")}
-              {...form.getInputProps("gig_date")}
-            />
-          </Group>
+          </Field>
 
-          <Group grow>
-            <Select
-              label="Contact"
-              placeholder="Aucun"
-              data={contactOptions}
-              searchable
-              clearable
-              nothingFoundMessage="Aucun contact"
-              key={form.key("contact_id")}
-              {...form.getInputProps("contact_id")}
-            />
-            <Select
-              label="Organisation"
-              placeholder="Aucune"
-              data={organizationOptions}
-              searchable
-              clearable
-              nothingFoundMessage="Aucune organisation"
-              key={form.key("organization_id")}
-              {...form.getInputProps("organization_id")}
-            />
-          </Group>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Statut">
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(String(v) as OpportunityStatus)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_SELECT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Date du gig" htmlFor="gig_date">
+              <DatePicker id="gig_date" value={gigDate} onChange={setGigDate} />
+            </Field>
+          </div>
 
-          <Group grow>
-            <TextInput
-              label="Ville"
-              placeholder="Toulouse"
-              key={form.key("city")}
-              {...form.getInputProps("city")}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Contact">
+              <Select
+                value={contactId}
+                onValueChange={(v) => setContactId(String(v ?? ""))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Aucun" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun</SelectItem>
+                  {contactOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Organisation">
+              <Select
+                value={organizationId}
+                onValueChange={(v) => setOrganizationId(String(v ?? ""))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune</SelectItem>
+                  {organizationOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Ville" htmlFor="city">
+              <Input
+                id="city"
+                placeholder="Toulouse"
+                value={city}
+                onChange={(e) => setCity(e.currentTarget.value)}
+              />
+            </Field>
+            <Field label="Salle / venue" htmlFor="venue">
+              <Input
+                id="venue"
+                placeholder="Le Bikini"
+                value={venue}
+                onChange={(e) => setVenue(e.currentTarget.value)}
+              />
+            </Field>
+          </div>
+
+          <Field label="Cachet (€)" htmlFor="fee">
+            <Input
+              id="fee"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              placeholder="1200"
+              value={fee}
+              onChange={(e) => setFee(e.currentTarget.value)}
             />
-            <TextInput
-              label="Salle / venue"
-              placeholder="Le Bikini"
-              key={form.key("venue")}
-              {...form.getInputProps("venue")}
+          </Field>
+
+          <Field label="Notes" htmlFor="notes">
+            <Textarea
+              id="notes"
+              placeholder="Contexte, conditions, contacts sur place…"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.currentTarget.value)}
             />
-          </Group>
+          </Field>
 
-          <NumberInput
-            label="Cachet (€)"
-            placeholder="1200"
-            min={0}
-            allowNegative={false}
-            thousandSeparator=" "
-            hideControls
-            key={form.key("fee")}
-            {...form.getInputProps("fee")}
-          />
-
-          <Textarea
-            label="Notes"
-            placeholder="Contexte, conditions, contacts sur place…"
-            autosize
-            minRows={2}
-            key={form.key("notes")}
-            {...form.getInputProps("notes")}
-          />
-
-          <Group justify="flex-end" mt="xs">
-            <Button variant="subtle" color="gray" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" loading={loading}>
-              {opportunity ? "Enregistrer" : "Créer l'opportunité"}
+            <Button type="submit" disabled={loading}>
+              {loading
+                ? "Enregistrement…"
+                : opportunity
+                  ? "Enregistrer"
+                  : "Créer l'opportunité"}
             </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Modal>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

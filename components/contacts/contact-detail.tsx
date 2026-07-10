@@ -3,21 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Divider,
-  Group,
-  Modal,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { deleteContact } from "@/app/(app)/contacts/actions";
 import {
@@ -29,15 +15,33 @@ import { SendEmailModal } from "@/components/emails/send-email-modal";
 import { EmailHistory, type EmailLog } from "@/components/emails/email-history";
 import { type EmailTemplate } from "@/components/templates/template-types";
 import { fullName, ROLE_META, type Contact } from "@/components/contacts/roles";
-import { ORG_TYPE_META, type Organization } from "@/components/organizations/org-types";
+import {
+  ORG_TYPE_META,
+  type Organization,
+} from "@/components/organizations/org-types";
 import { TaskSection } from "@/components/tasks/task-section";
 import { type Task } from "@/components/tasks/task-types";
 import { EnrollToSequenceModal } from "@/components/sequences/enroll-to-sequence-modal";
 import { type Sequence } from "@/components/sequences/sequence-types";
-
-function notifyError(message: string) {
-  notifications.show({ color: "red", message });
-}
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   contact: Contact;
@@ -68,12 +72,11 @@ export function ContactDetail({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
-  const [orgToLink, setOrgToLink] = useState<string | null>(null);
+  const [orgToLink, setOrgToLink] = useState<string>("");
   const [isLinking, startLink] = useTransition();
 
   const meta = contact.role ? ROLE_META[contact.role] : null;
 
-  // Organisations non encore liées, pour le sélecteur.
   const linkableOptions = useMemo(() => {
     const linkedIds = new Set(linkedOrgs.map((o) => o.id));
     return allOrgs
@@ -85,8 +88,11 @@ export function ContactDetail({
     if (!orgToLink) return;
     startLink(async () => {
       const res = await linkOrganization(contact.id, orgToLink);
-      if ("error" in res) return notifyError(res.error);
-      setOrgToLink(null);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
+      setOrgToLink("");
       router.refresh();
     });
   }
@@ -94,7 +100,10 @@ export function ContactDetail({
   function handleUnlink(orgId: string) {
     startLink(async () => {
       const res = await unlinkOrganization(contact.id, orgId);
-      if ("error" in res) return notifyError(res.error);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
       router.refresh();
     });
   }
@@ -102,170 +111,160 @@ export function ContactDetail({
   function handleDelete() {
     startDelete(async () => {
       const res = await deleteContact(contact.id);
-      if ("error" in res) return notifyError(res.error);
+      if ("error" in res) {
+        toast.error(res.error);
+        return;
+      }
       router.push("/contacts");
     });
   }
 
   return (
-    <Stack gap="lg">
-      <Anchor component={Link} href="/contacts" size="sm" c="dimmed">
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/contacts"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
         ← Contacts
-      </Anchor>
+      </Link>
 
-      <Group justify="space-between" align="flex-start">
-        <Group gap="sm" align="center">
-          <Title order={1}>{fullName(contact)}</Title>
-          {meta && (
-            <Badge color={meta.color} variant="light">
-              {meta.label}
-            </Badge>
-          )}
-        </Group>
-        <Group>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">{fullName(contact)}</h1>
+          {meta && <Badge variant="secondary">{meta.label}</Badge>}
+        </div>
+        <div className="flex flex-wrap gap-2">
           {contact.email && (
             <Button onClick={() => setEmailOpen(true)}>Envoyer un email</Button>
           )}
-          <Button variant="default" onClick={() => setEnrollOpen(true)}>
+          <Button variant="outline" onClick={() => setEnrollOpen(true)}>
             Ajouter à une séquence
           </Button>
-          <Button variant="default" onClick={() => setEditOpen(true)}>
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
             Modifier
           </Button>
           <Button
-            variant="subtle"
-            color="red"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10"
             onClick={() => setConfirmDelete(true)}
           >
             Supprimer
           </Button>
-        </Group>
-      </Group>
+        </div>
+      </div>
 
       {/* Coordonnées */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Text fw={700} size="sm">
-            Coordonnées
-          </Text>
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+      <Card>
+        <CardHeader>
+          <CardTitle>Coordonnées</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow label="Email">
               {contact.email ? (
-                <Anchor href={`mailto:${contact.email}`} size="sm">
+                <a
+                  href={`mailto:${contact.email}`}
+                  className="text-sm text-primary hover:underline"
+                >
                   {contact.email}
-                </Anchor>
+                </a>
               ) : (
                 <Dash />
               )}
             </InfoRow>
             <InfoRow label="Téléphone">
               {contact.phone ? (
-                <Text size="sm">{contact.phone}</Text>
+                <span className="text-sm">{contact.phone}</span>
               ) : (
                 <Dash />
               )}
             </InfoRow>
-          </SimpleGrid>
+          </div>
           {contact.notes && (
-            <>
-              <Divider />
+            <div className="border-t pt-4">
               <InfoRow label="Notes">
-                <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                  {contact.notes}
-                </Text>
+                <p className="whitespace-pre-wrap text-sm">{contact.notes}</p>
               </InfoRow>
-            </>
+            </div>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
       {/* Organisations liées */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Text fw={700} size="sm">
-            Organisations
-          </Text>
-
+      <Card>
+        <CardHeader>
+          <CardTitle>Organisations</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
           {linkedOrgs.length === 0 ? (
-            <Text c="dimmed" size="sm">
+            <p className="text-sm text-muted-foreground">
               Aucune organisation liée.
-            </Text>
+            </p>
           ) : (
-            <Stack gap="xs">
+            <ul className="flex flex-col gap-2">
               {linkedOrgs.map((o) => {
                 const om = o.type ? ORG_TYPE_META[o.type] : null;
                 return (
-                  <Group key={o.id} justify="space-between">
-                    <Group gap="sm">
-                      <Anchor
-                        component={Link}
+                  <li key={o.id} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Link
                         href="/organizations"
-                        size="sm"
-                        fw={500}
+                        className="text-sm font-medium text-primary hover:underline"
                       >
                         {o.name}
-                      </Anchor>
-                      {om && (
-                        <Badge
-                          color={om.color}
-                          variant="light"
-                          size="sm"
-                        >
-                          {om.label}
-                        </Badge>
-                      )}
+                      </Link>
+                      {om && <StatusBadge color={om.color}>{om.label}</StatusBadge>}
                       {o.city && (
-                        <Text c="dimmed" size="sm">
+                        <span className="text-sm text-muted-foreground">
                           {o.city}
-                        </Text>
+                        </span>
                       )}
-                    </Group>
+                    </div>
                     <Button
-                      variant="subtle"
-                      color="gray"
-                      size="compact-sm"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleUnlink(o.id)}
                       disabled={isLinking}
                     >
                       Délier
                     </Button>
-                  </Group>
+                  </li>
                 );
               })}
-            </Stack>
+            </ul>
           )}
 
           {linkableOptions.length > 0 && (
-            <>
-              <Divider />
-              <Group align="flex-end">
+            <div className="flex items-end gap-2 border-t pt-4">
+              <Field label="Lier une organisation" className="flex-1">
                 <Select
-                  label="Lier une organisation"
-                  placeholder="Choisir…"
-                  data={linkableOptions}
                   value={orgToLink}
-                  onChange={setOrgToLink}
-                  searchable
-                  flex={1}
-                />
-                <Button onClick={handleLink} loading={isLinking} disabled={!orgToLink}>
-                  Lier
-                </Button>
-              </Group>
-            </>
+                  onValueChange={(v) => setOrgToLink(String(v ?? ""))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choisir…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {linkableOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Button onClick={handleLink} disabled={!orgToLink || isLinking}>
+                Lier
+              </Button>
+            </div>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
       {/* Tâches liées à ce contact */}
       <TaskSection tasks={tasks} presetContactId={contact.id} />
 
       <EmailHistory logs={emailLogs} />
-
-      {/* Sections à venir */}
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        <SoonCard title="Opportunités" step="étape 3.x" />
-      </SimpleGrid>
 
       {editOpen && (
         <ContactFormModal
@@ -302,40 +301,40 @@ export function ContactDetail({
         />
       )}
 
-      <Modal
-        opened={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title="Supprimer le contact"
-        centered
+      <Dialog
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDelete(false);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{fullName(contact)}</b> ? Cette action est
-              irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setConfirmDelete(false)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeleting}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-    </Stack>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le contact</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{fullName(contact)}</b> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmDelete(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              {isDeleting ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -347,34 +346,15 @@ function InfoRow({
   children: React.ReactNode;
 }) {
   return (
-    <Stack gap={2}>
-      <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
-      </Text>
+      </span>
       {children}
-    </Stack>
+    </div>
   );
 }
 
 function Dash() {
-  return (
-    <Text c="dimmed" size="sm">
-      —
-    </Text>
-  );
-}
-
-function SoonCard({ title, step }: { title: string; step: string }) {
-  return (
-    <Card withBorder padding="lg">
-      <Stack gap={4}>
-        <Text fw={700} size="sm">
-          {title}
-        </Text>
-        <Text c="dimmed" size="xs">
-          À venir — {step}
-        </Text>
-      </Stack>
-    </Card>
-  );
+  return <span className="text-sm text-muted-foreground">—</span>;
 }

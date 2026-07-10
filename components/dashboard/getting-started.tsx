@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Card, Group, Stack, Text, ThemeIcon } from "@mantine/core";
+import { Check } from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export type SetupState = {
   mailConnected: boolean;
@@ -47,68 +51,68 @@ export function GettingStarted({ setup }: { setup: SetupState }) {
   if (doneCount === STEPS.length) return null;
 
   return (
-    <Card withBorder padding="lg" radius="lg">
-      <Stack gap="md">
-        <Stack gap={2}>
-          <Group justify="space-between" align="center">
-            <Text fw={700}>Démarrage</Text>
-            <Text c="dimmed" size="sm">
-              {doneCount}/{STEPS.length}
-            </Text>
-          </Group>
-          <Text c="dimmed" size="sm">
-            Trois étapes pour tirer le meilleur de Booking OS.
-          </Text>
-        </Stack>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Démarrage</CardTitle>
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {doneCount}/{STEPS.length}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Trois étapes pour tirer le meilleur de Booking OS.
+        </p>
+      </CardHeader>
 
-        <Stack gap="sm">
-          {STEPS.map((step) => {
-            const done = setup[step.key];
-            return (
-              <Group key={step.key} justify="space-between" wrap="nowrap" gap="md">
-                <Group gap="sm" wrap="nowrap" align="flex-start">
-                  <ThemeIcon
-                    size="md"
-                    radius="xl"
-                    variant={done ? "filled" : "default"}
-                    color={done ? "green" : "gray"}
-                  >
-                    <Text fz={12} fw={700}>
-                      {done ? "✓" : ""}
-                    </Text>
-                  </ThemeIcon>
-                  <Stack gap={0}>
-                    <Text
-                      size="sm"
-                      fw={500}
-                      td={done ? "line-through" : undefined}
-                      c={done ? "dimmed" : undefined}
-                    >
-                      {step.label}
-                    </Text>
-                    {!done && (
-                      <Text c="dimmed" size="xs">
-                        {step.hint}
-                      </Text>
+      <CardContent className="flex flex-col gap-3">
+        {STEPS.map((step) => {
+          const done = setup[step.key];
+          return (
+            <div
+              key={step.key}
+              className="flex items-start justify-between gap-4"
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={cn(
+                    "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border",
+                    done
+                      ? "border-transparent bg-primary text-primary-foreground"
+                      : "border-border text-transparent",
+                  )}
+                >
+                  <Check className="size-3" />
+                </span>
+                <div className="flex flex-col">
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      done && "text-muted-foreground line-through",
                     )}
-                  </Stack>
-                </Group>
-                {!done && (
-                  <Button
-                    component={Link}
-                    href={step.href}
-                    size="xs"
-                    variant="light"
-                    style={{ flexShrink: 0 }}
                   >
-                    {step.cta}
-                  </Button>
-                )}
-              </Group>
-            );
-          })}
-        </Stack>
-      </Stack>
+                    {step.label}
+                  </span>
+                  {!done && (
+                    <span className="text-xs text-muted-foreground">
+                      {step.hint}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {!done && (
+                <Button
+                  render={<Link href={step.href} />}
+                  size="sm"
+                  variant="secondary"
+                  className="shrink-0"
+                >
+                  {step.cta}
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
     </Card>
   );
 }

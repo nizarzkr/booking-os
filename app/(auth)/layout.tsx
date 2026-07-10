@@ -1,11 +1,9 @@
-import { Center } from "@mantine/core";
-
 export default function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <Center mih="100dvh" p="md">
+    <div className="flex min-h-dvh items-center justify-center p-4">
       {children}
-    </Center>
+    </div>
   );
 }

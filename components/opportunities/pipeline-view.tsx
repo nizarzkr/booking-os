@@ -3,17 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ActionIcon,
-  Anchor,
-  Badge,
-  Card,
-  Group,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   DragDropContext,
   Draggable,
@@ -31,6 +22,8 @@ import {
 } from "@/components/opportunities/opportunity-types";
 import { type OpportunityListItem } from "@/components/opportunities/opportunities-view";
 import { todayISO } from "@/lib/utils/date";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 type Props = {
   opportunities: OpportunityListItem[];
@@ -72,9 +65,7 @@ export function PipelineView({ opportunities }: Props) {
   );
 
   // Re-synchronise l'état local avec la vérité serveur quand les props changent
-  // (nouvelle référence après un `router.refresh` des flèches ou d'un drop).
-  // Pattern React « ajuster l'état pendant le rendu » : préserve la mise à jour
-  // optimiste tant que la prop ne change pas (pas de setState en effet).
+  // (pattern React « ajuster l'état pendant le rendu »).
   const [prevOpps, setPrevOpps] = useState(opportunities);
   if (opportunities !== prevOpps) {
     setPrevOpps(opportunities);
@@ -89,7 +80,7 @@ export function PipelineView({ opportunities }: Props) {
     const res = await setOpportunityStatus(id, next);
     if ("error" in res) {
       setColumns(revert);
-      notifications.show({ color: "red", message: res.error });
+      toast.error(res.error);
       return;
     }
     router.refresh();
@@ -104,7 +95,7 @@ export function PipelineView({ opportunities }: Props) {
     const res = await setOpportunityStatus(o.id, next);
     setPendingId(null);
     if ("error" in res) {
-      notifications.show({ color: "red", message: res.error });
+      toast.error(res.error);
       return;
     }
     router.refresh();
@@ -113,8 +104,6 @@ export function PipelineView({ opportunities }: Props) {
   function handleDragEnd(result: DropResult) {
     const { source, destination, draggableId } = result;
     if (!destination) return;
-    // On ne persiste pas l'ordre intra-colonne : seul un changement de colonne
-    // (donc de statut) est significatif.
     if (source.droppableId === destination.droppableId) return;
 
     const from = source.droppableId as OpportunityStatus;
@@ -135,164 +124,127 @@ export function PipelineView({ opportunities }: Props) {
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <Group
-        align="flex-start"
-        gap="md"
-        wrap="nowrap"
-        style={{ overflowX: "auto" }}
-      >
+      <div className="flex items-start gap-4 overflow-x-auto pb-2">
         {STATUS_ORDER.map((status) => {
           const meta = STATUS_META[status];
           const items = columns[status];
           return (
-            <Stack key={status} gap="sm" w={260} style={{ flex: "0 0 auto" }}>
-              <Group gap="xs" justify="space-between">
-                <Badge color={meta.color} variant="light" size="sm">
-                  {meta.label}
-                </Badge>
-                <Text c="dimmed" size="sm" fw={700}>
+            <div key={status} className="flex w-64 flex-none flex-col gap-2.5">
+              <div className="flex items-center justify-between px-0.5">
+                <StatusBadge color={meta.color}>{meta.label}</StatusBadge>
+                <span className="text-sm font-semibold text-muted-foreground tabular-nums">
                   {items.length}
-                </Text>
-              </Group>
+                </span>
+              </div>
 
               <Droppable droppableId={status}>
                 {(dropProvided, dropSnapshot) => (
                   <div
                     ref={dropProvided.innerRef}
                     {...dropProvided.droppableProps}
-                    style={{
-                      minHeight: 60,
-                      borderRadius: "var(--mantine-radius-md)",
-                      background: dropSnapshot.isDraggingOver
-                        ? "var(--mantine-color-dark-6)"
-                        : "transparent",
-                      transition: "background 120ms ease",
-                    }}
+                    className={cn(
+                      "flex min-h-[40px] flex-col gap-2.5 rounded-lg p-0.5 transition-colors",
+                      dropSnapshot.isDraggingOver && "bg-muted",
+                    )}
                   >
-                    <Stack gap="sm">
-                      {items.length === 0 && !dropSnapshot.isDraggingOver ? (
-                        <Text c="dimmed" size="xs" ta="center" py="sm">
-                          —
-                        </Text>
-                      ) : (
-                        items.map((o, index) => {
-                          const idx = STATUS_ORDER.indexOf(o.status);
-                          const overdue = isGigOverdue(o);
-                          const who = o.contact_name ?? o.organization_name;
-                          return (
-                            <Draggable
-                              key={o.id}
-                              draggableId={o.id}
-                              index={index}
-                            >
-                              {(dragProvided, dragSnapshot) => (
-                                <Card
-                                  ref={dragProvided.innerRef}
-                                  {...dragProvided.draggableProps}
-                                  {...dragProvided.dragHandleProps}
-                                  withBorder
-                                  padding="sm"
-                                  radius="md"
-                                  style={{
-                                    ...dragProvided.draggableProps.style,
-                                    cursor: "grab",
-                                    borderColor: dragSnapshot.isDragging
-                                      ? "var(--mantine-color-gray-5)"
-                                      : undefined,
-                                  }}
+                    {items.length === 0 && !dropSnapshot.isDraggingOver ? (
+                      <p className="py-2 text-center text-xs text-muted-foreground">
+                        —
+                      </p>
+                    ) : (
+                      items.map((o, index) => {
+                        const idx = STATUS_ORDER.indexOf(o.status);
+                        const overdue = isGigOverdue(o);
+                        const who = o.contact_name ?? o.organization_name;
+                        return (
+                          <Draggable
+                            key={o.id}
+                            draggableId={o.id}
+                            index={index}
+                          >
+                            {(dragProvided, dragSnapshot) => (
+                              <div
+                                ref={dragProvided.innerRef}
+                                {...dragProvided.draggableProps}
+                                {...dragProvided.dragHandleProps}
+                                style={dragProvided.draggableProps.style}
+                                className={cn(
+                                  "flex cursor-grab flex-col gap-1.5 rounded-xl border bg-card p-3 shadow-[0_1px_2px_rgba(34,32,28,0.05)]",
+                                  dragSnapshot.isDragging &&
+                                    "shadow-[0_8px_24px_rgba(34,32,28,0.12)]",
+                                )}
+                              >
+                                <Link
+                                  href={`/opportunities/${o.id}`}
+                                  className="text-sm font-semibold text-primary hover:underline"
                                 >
-                                  <Stack gap={6}>
-                                    <Anchor
-                                      component={Link}
-                                      href={`/opportunities/${o.id}`}
-                                      fw={600}
-                                      size="sm"
-                                    >
-                                      {o.title}
-                                    </Anchor>
+                                  {o.title}
+                                </Link>
 
-                                    {who && (
-                                      <Text c="dimmed" size="xs">
-                                        {who}
-                                      </Text>
-                                    )}
+                                {who && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {who}
+                                  </span>
+                                )}
 
-                                    <Group gap="xs" justify="space-between">
-                                      <Group gap="xs">
-                                        <Text
-                                          size="xs"
-                                          c={overdue ? "red.5" : "dimmed"}
-                                        >
-                                          {formatGigDate(o.gig_date)}
-                                        </Text>
-                                        {overdue && (
-                                          <Badge
-                                            color="red"
-                                            variant="light"
-                                            size="xs"
-                                          >
-                                            Dépassé
-                                          </Badge>
-                                        )}
-                                      </Group>
-                                      {o.fee !== null && (
-                                        <Text
-                                          size="xs"
-                                          fw={600}
-                                          ff="monospace"
-                                        >
-                                          {formatFee(o.fee)}
-                                        </Text>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={cn(
+                                        "text-xs text-muted-foreground",
+                                        overdue && "text-destructive",
                                       )}
-                                    </Group>
+                                    >
+                                      {formatGigDate(o.gig_date)}
+                                    </span>
+                                    {overdue && (
+                                      <StatusBadge color="red">Dépassé</StatusBadge>
+                                    )}
+                                  </div>
+                                  {o.fee !== null && (
+                                    <span className="font-mono text-xs font-semibold tabular-nums">
+                                      {formatFee(o.fee)}
+                                    </span>
+                                  )}
+                                </div>
 
-                                    <Group gap={4} justify="flex-end">
-                                      <Tooltip label="Statut précédent" withArrow>
-                                        <ActionIcon
-                                          variant="subtle"
-                                          color="gray"
-                                          size="sm"
-                                          aria-label="Statut précédent"
-                                          disabled={
-                                            idx === 0 || pendingId === o.id
-                                          }
-                                          onClick={() => move(o, -1)}
-                                        >
-                                          ◀
-                                        </ActionIcon>
-                                      </Tooltip>
-                                      <Tooltip label="Statut suivant" withArrow>
-                                        <ActionIcon
-                                          variant="subtle"
-                                          color="gray"
-                                          size="sm"
-                                          aria-label="Statut suivant"
-                                          disabled={
-                                            idx === STATUS_ORDER.length - 1 ||
-                                            pendingId === o.id
-                                          }
-                                          onClick={() => move(o, 1)}
-                                        >
-                                          ▶
-                                        </ActionIcon>
-                                      </Tooltip>
-                                    </Group>
-                                  </Stack>
-                                </Card>
-                              )}
-                            </Draggable>
-                          );
-                        })
-                      )}
-                      {dropProvided.placeholder}
-                    </Stack>
+                                <div className="flex justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    aria-label="Statut précédent"
+                                    disabled={idx === 0 || pendingId === o.id}
+                                    onClick={() => move(o, -1)}
+                                    className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+                                  >
+                                    <ChevronLeft className="size-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label="Statut suivant"
+                                    disabled={
+                                      idx === STATUS_ORDER.length - 1 ||
+                                      pendingId === o.id
+                                    }
+                                    onClick={() => move(o, 1)}
+                                    className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+                                  >
+                                    <ChevronRight className="size-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })
+                    )}
+                    {dropProvided.placeholder}
                   </div>
                 )}
               </Droppable>
-            </Stack>
+            </div>
           );
         })}
-      </Group>
+      </div>
     </DragDropContext>
   );
 }

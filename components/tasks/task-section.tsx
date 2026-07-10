@@ -2,24 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Badge,
-  Button,
-  Card,
-  Checkbox,
-  Group,
-  Stack,
-  Text,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { deleteTask, setTaskDone } from "@/app/(app)/tasks/actions";
 import { TaskFormModal } from "@/components/tasks/task-form-modal";
 import { dueMeta, formatDueDate, type Task } from "@/components/tasks/task-types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 type Props = {
   tasks: Task[];
-  // La tâche créée depuis cette fiche est pré-liée à l'entité (l'un des deux).
   presetOpportunityId?: string | null;
   presetContactId?: string | null;
 };
@@ -45,7 +40,7 @@ export function TaskSection({
       const res = await setTaskDone(task.id, !task.done);
       setTogglingId(null);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.refresh();
@@ -58,7 +53,7 @@ export function TaskSection({
       const res = await deleteTask(task.id);
       setDeletingId(null);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.refresh();
@@ -66,70 +61,65 @@ export function TaskSection({
   }
 
   return (
-    <Card withBorder padding="lg">
-      <Stack gap="sm">
-        <Group justify="space-between" align="center">
-          <Text fw={700} size="sm">
-            Tâches
-          </Text>
-          <Button size="compact-sm" onClick={() => setFormOpen(true)}>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Tâches</CardTitle>
+          <Button size="sm" onClick={() => setFormOpen(true)}>
             Ajouter une tâche
           </Button>
-        </Group>
-
+        </div>
+      </CardHeader>
+      <CardContent>
         {tasks.length === 0 ? (
-          <Text c="dimmed" size="sm">
+          <p className="text-sm text-muted-foreground">
             Aucune tâche. Ajoute une relance ou un rappel.
-          </Text>
+          </p>
         ) : (
-          <Stack gap="xs">
+          <ul className="flex flex-col gap-2">
             {tasks.map((t) => {
               const meta = dueMeta(t);
               return (
-                <Group key={t.id} justify="space-between" wrap="nowrap">
-                  <Group gap="sm" wrap="nowrap">
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <Checkbox
                       checked={t.done}
-                      onChange={() => toggleDone(t)}
+                      onCheckedChange={() => toggleDone(t)}
                       disabled={togglingId === t.id}
                       aria-label="Marquer comme fait"
                     />
-                    <Text
-                      size="sm"
-                      fw={500}
-                      td={t.done ? "line-through" : undefined}
-                      c={t.done ? "dimmed" : undefined}
+                    <span
+                      className={cn(
+                        "truncate text-sm font-medium",
+                        t.done && "text-muted-foreground line-through",
+                      )}
                     >
                       {t.title}
-                    </Text>
-                    <Text c="dimmed" size="sm">
+                    </span>
+                    <span className="whitespace-nowrap text-sm text-muted-foreground">
                       {formatDueDate(t.due_date)}
-                    </Text>
+                    </span>
                     {meta && (
-                      <Badge
-                        color={meta.color}
-                        variant="light"
-                        size="sm"
-                      >
-                        {meta.label}
-                      </Badge>
+                      <StatusBadge color={meta.color}>{meta.label}</StatusBadge>
                     )}
-                  </Group>
+                  </div>
                   <Button
-                    variant="subtle"
-                    color="gray"
-                    size="compact-sm"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => remove(t)}
                     disabled={deletingId === t.id}
                   >
                     Supprimer
                   </Button>
-                </Group>
+                </li>
               );
             })}
-          </Stack>
+          </ul>
         )}
-      </Stack>
+      </CardContent>
 
       {formOpen && (
         <TaskFormModal

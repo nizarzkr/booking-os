@@ -1,20 +1,18 @@
-import { Button, Center, Stack, Text, Title } from "@mantine/core";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 
 /** 404 racine (URLs non reconnues hors shell applicatif). */
 export default function NotFound() {
   return (
-    <Center mih="100dvh" p="md">
-      <Stack align="center" gap="xs">
-        <Title order={2} fw={600}>
-          Page introuvable
-        </Title>
-        <Text c="dimmed" size="sm" ta="center" maw={420}>
-          {"Cette page n'existe pas."}
-        </Text>
-        <Button component="a" href="/dashboard" mt="sm">
-          {"Retour à l'accueil"}
-        </Button>
-      </Stack>
-    </Center>
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 p-4 text-center">
+      <h2 className="text-xl font-semibold">Page introuvable</h2>
+      <p className="max-w-md text-sm text-muted-foreground">
+        {"Cette page n'existe pas."}
+      </p>
+      <Button render={<Link href="/dashboard" />} className="mt-2">
+        {"Retour à l'accueil"}
+      </Button>
+    </div>
   );
 }

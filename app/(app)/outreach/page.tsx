@@ -1,4 +1,3 @@
-import { Alert, Stack, Title } from "@mantine/core";
 
 import { createClient } from "@/lib/supabase/server";
 import { fullName } from "@/components/contacts/roles";
@@ -108,13 +107,13 @@ export default async function OutreachPage({
   const error = templatesError ?? inboxError ?? sequencesError;
 
   return (
-    <Stack gap="lg">
-      <Title order={1}>Prospection</Title>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-semibold">Prospection</h1>
 
       {error ? (
-        <Alert color="red" variant="light" radius="md">
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Impossible de charger la prospection. Réessaie.
-        </Alert>
+        </div>
       ) : (
         <OutreachHub
           sequences={sequences}
@@ -126,6 +125,6 @@ export default async function OutreachPage({
           initialTab={initialTab}
         />
       )}
-    </Stack>
+    </div>
   );
 }

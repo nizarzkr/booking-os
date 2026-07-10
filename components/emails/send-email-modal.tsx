@@ -1,17 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Group,
-  Modal,
-  Select,
-  Stack,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { sendEmail } from "@/app/(app)/emails/actions";
 import {
@@ -19,6 +9,24 @@ import {
   type EmailTemplate,
   type TemplateVars,
 } from "@/components/templates/template-types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   onClose: () => void;
@@ -31,9 +39,8 @@ type Props = {
 };
 
 /**
- * Monté uniquement à l'ouverture (état frais, pas de useEffect). Choisir un
- * template pré-remplit objet + corps avec les variables résolues ; tout reste
- * éditable avant envoi.
+ * Monté uniquement à l'ouverture (état frais). Choisir un template pré-remplit
+ * objet + corps avec les variables résolues ; tout reste éditable avant envoi.
  */
 export function SendEmailModal({
   onClose,
@@ -47,16 +54,11 @@ export function SendEmailModal({
   const [to, setTo] = useState(defaultTo);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const templateOptions = templates.map((t) => ({
-    value: t.id,
-    label: t.name,
-  }));
-
-  function applyTemplate(id: string | null) {
+  function applyTemplate(id: string) {
     setTemplateId(id);
     if (!id) return;
     const tpl = templates.find((t) => t.id === id);
@@ -68,67 +70,96 @@ export function SendEmailModal({
   async function handleSend() {
     setLoading(true);
     setError(null);
-    const result = await sendEmail({ to, subject, body, contactId, opportunityId });
+    const result = await sendEmail({
+      to,
+      subject,
+      body,
+      contactId,
+      opportunityId,
+    });
     setLoading(false);
     if ("error" in result) {
       setError(result.error);
       return;
     }
-    notifications.show({ color: "green", message: "Email envoyé." });
+    toast.success("Email envoyé.");
     onSent();
   }
 
   return (
-    <Modal opened onClose={onClose} title="Envoyer un email" centered size="lg">
-      <Stack gap="sm">
-        {error && (
-          <Alert color="red" variant="light" radius="md">
-            {error}
-          </Alert>
-        )}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Envoyer un email</DialogTitle>
+        </DialogHeader>
 
-        {templateOptions.length > 0 && (
-          <Select
-            label="Template"
-            placeholder="Partir d'un template (optionnel)"
-            data={templateOptions}
-            value={templateId}
-            onChange={applyTemplate}
-            clearable
-          />
-        )}
+        <div className="flex flex-col gap-4">
+          {error && (
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
 
-        <TextInput
-          label="Destinataire"
-          type="email"
-          value={to}
-          onChange={(e) => setTo(e.currentTarget.value)}
-          required
-        />
-        <TextInput
-          label="Objet"
-          value={subject}
-          onChange={(e) => setSubject(e.currentTarget.value)}
-          required
-        />
-        <Textarea
-          label="Message"
-          value={body}
-          onChange={(e) => setBody(e.currentTarget.value)}
-          autosize
-          minRows={8}
-          required
-        />
+          {templates.length > 0 && (
+            <Field label="Template">
+              <Select
+                value={templateId}
+                onValueChange={(v) => applyTemplate(String(v ?? ""))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Partir d'un template (optionnel)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun template</SelectItem>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
 
-        <Group justify="flex-end" mt="xs">
-          <Button variant="default" color="gray" onClick={onClose}>
+          <Field label="Destinataire" htmlFor="to" required>
+            <Input
+              id="to"
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.currentTarget.value)}
+            />
+          </Field>
+          <Field label="Objet" htmlFor="subject" required>
+            <Input
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.currentTarget.value)}
+            />
+          </Field>
+          <Field label="Message" htmlFor="body" required>
+            <Textarea
+              id="body"
+              rows={8}
+              value={body}
+              onChange={(e) => setBody(e.currentTarget.value)}
+            />
+          </Field>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={onClose}>
             Annuler
           </Button>
-          <Button onClick={handleSend} loading={loading}>
-            Envoyer
+          <Button type="button" onClick={handleSend} disabled={loading}>
+            {loading ? "Envoi…" : "Envoyer"}
           </Button>
-        </Group>
-      </Stack>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

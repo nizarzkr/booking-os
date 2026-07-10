@@ -1,46 +1,45 @@
-import { Badge, Box, Button, Group, Stack, Text, Title } from "@mantine/core";
-
 export default function HomePage() {
   return (
-    <Box mih="100dvh" style={{ display: "flex", flexDirection: "column" }}>
+    <div className="flex min-h-dvh flex-col">
       {/* Header : marque à gauche, accès connexion / inscription à droite */}
-      <Group component="header" p="md" justify="space-between" wrap="nowrap">
-        <Text fw={600} fz="sm" style={{ letterSpacing: "-0.01em" }}>
-          Booking OS
-        </Text>
-        <Group gap="sm">
-          <Button component="a" href="/login" variant="default" size="sm">
+      <header className="flex items-center justify-between p-4">
+        <span className="text-sm font-semibold tracking-tight">Booking OS</span>
+        <div className="flex items-center gap-2">
+          <a
+            href="/login"
+            className="inline-flex h-8 items-center rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-muted"
+          >
             Se connecter
-          </Button>
-          <Button component="a" href="/register" size="sm">
+          </a>
+          <a
+            href="/register"
+            className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
             Créer un compte
-          </Button>
-        </Group>
-      </Group>
+          </a>
+        </div>
+      </header>
 
       {/* Hero */}
-      <Stack align="center" justify="center" gap="lg" p="md" style={{ flex: 1 }}>
-        <Badge variant="light" color="violet" size="lg">
+      <main className="flex flex-1 flex-col items-center justify-center gap-5 p-4 text-center">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
           Pour les artistes indépendants
-        </Badge>
-        <Title
-          order={1}
-          fz={{ base: 44, sm: 64 }}
-          fw={700}
-          ta="center"
-          style={{ letterSpacing: "-0.02em" }}
-        >
+        </span>
+        <h1 className="max-w-3xl text-5xl font-semibold tracking-tight sm:text-6xl">
           Le booking, simplifié.
-        </Title>
-        <Text c="dimmed" fz="lg" ta="center" maw={500}>
+        </h1>
+        <p className="max-w-lg text-lg text-muted-foreground">
           Sache exactement qui contacter ou relancer aujourd&apos;hui pour
-          décrocher plus de dates. Contacts, opportunités, emails et agenda —
-          au même endroit.
-        </Text>
-        <Button component="a" href="/register" size="md" mt="xs">
+          décrocher plus de dates. Contacts, opportunités, emails et agenda — au
+          même endroit.
+        </p>
+        <a
+          href="/register"
+          className="mt-1 inline-flex h-10 items-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
           Commencer gratuitement
-        </Button>
-      </Stack>
-    </Box>
+        </a>
+      </main>
+    </div>
   );
 }

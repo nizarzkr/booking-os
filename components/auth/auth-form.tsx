@@ -2,19 +2,12 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import {
-  Alert,
-  Anchor,
-  Button,
-  Paper,
-  PasswordInput,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
 
 import type { AuthState } from "@/app/(auth)/actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
 
 type AuthAction = (
   prevState: AuthState,
@@ -43,53 +36,56 @@ export function AuthForm({
   const [state, formAction, isPending] = useActionState(action, null);
 
   return (
-    <Paper w="100%" maw={400} p="xl" radius="lg" withBorder>
-      <form action={formAction}>
-        <Stack gap="md">
-          <Title order={2} fw={600}>
-            {title}
-          </Title>
+    <Card className="w-full max-w-sm">
+      <CardContent className="p-6">
+        <form action={formAction} className="flex flex-col gap-4">
+          <h1 className="text-xl font-semibold">{title}</h1>
 
           {state && "error" in state && (
-            <Alert color="red" variant="light" radius="md">
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {state.error}
-            </Alert>
+            </div>
           )}
 
           {state && "notice" in state && (
-            <Alert color="green" variant="light" radius="md">
+            <div className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
               {state.notice}
-            </Alert>
+            </div>
           )}
 
-          <TextInput
-            name="email"
-            type="email"
-            label="Email"
-            placeholder="toi@exemple.com"
-            autoComplete="email"
-            required
-          />
-          <PasswordInput
-            name="password"
-            label="Mot de passe"
-            placeholder="••••••••"
-            autoComplete={passwordAutoComplete}
-            required
-          />
+          <Field label="Email" htmlFor="email">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="toi@exemple.com"
+              autoComplete="email"
+              required
+            />
+          </Field>
+          <Field label="Mot de passe" htmlFor="password">
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              autoComplete={passwordAutoComplete}
+              required
+            />
+          </Field>
 
-          <Button type="submit" loading={isPending} fullWidth mt="xs">
-            {submitLabel}
+          <Button type="submit" disabled={isPending} className="mt-1 w-full">
+            {isPending ? "…" : submitLabel}
           </Button>
 
-          <Text size="sm" c="dimmed" ta="center">
+          <p className="text-center text-sm text-muted-foreground">
             {altText}{" "}
-            <Anchor component={Link} href={altHref} inherit>
+            <Link href={altHref} className="text-primary hover:underline">
               {altLinkLabel}
-            </Anchor>
-          </Text>
-        </Stack>
-      </form>
-    </Paper>
+            </Link>
+          </p>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

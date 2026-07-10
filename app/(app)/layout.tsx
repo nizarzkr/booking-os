@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { AppNav } from "@/components/layout/app-nav";
+import { AppHeader } from "@/components/layout/app-header";
+import { PageTransition } from "@/components/layout/page-transition";
 
 /**
  * Layout des routes applicatives protégées (avec shell/sidebar).
@@ -41,11 +42,14 @@ export default async function AppLayout({
   ]);
 
   return (
-    <AppNav
-      workspaceName={workspace?.name ?? "Mon espace"}
-      unreadInbox={unreadInbox ?? 0}
-    >
-      {children}
-    </AppNav>
+    <div className="flex min-h-full flex-col">
+      <AppHeader
+        workspaceName={workspace?.name ?? "Mon espace"}
+        unreadInbox={unreadInbox ?? 0}
+      />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <PageTransition>{children}</PageTransition>
+      </main>
+    </div>
   );
 }

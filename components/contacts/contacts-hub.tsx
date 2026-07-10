@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs } from "@mantine/core";
 
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { ContactsView } from "@/components/contacts/contacts-view";
 import { type Contact } from "@/components/contacts/roles";
 import { OrganizationsView } from "@/components/organizations/organizations-view";
@@ -28,7 +28,7 @@ export function ContactsHub({
 
   // Sync de l'onglet dans l'URL (?tab=…) sans refetch : l'état local reste la
   // source de vérité, mais l'onglet courant devient partageable / persistant.
-  function changeTab(next: string | null) {
+  function changeTab(next: unknown) {
     if (next !== "people" && next !== "places") return;
     setTab(next);
     window.history.replaceState(
@@ -39,19 +39,19 @@ export function ContactsHub({
   }
 
   return (
-    <Tabs value={tab} onChange={changeTab} keepMounted={false}>
-      <Tabs.List mb="lg">
-        <Tabs.Tab value="people">Personnes</Tabs.Tab>
-        <Tabs.Tab value="places">Lieux &amp; structures</Tabs.Tab>
-      </Tabs.List>
+    <Tabs value={tab} onValueChange={changeTab}>
+      <TabsList>
+        <TabsTab value="people">Personnes</TabsTab>
+        <TabsTab value="places">Lieux &amp; structures</TabsTab>
+      </TabsList>
 
-      <Tabs.Panel value="people">
+      <TabsPanel value="people">
         <ContactsView contacts={contacts} sequences={sequences} />
-      </Tabs.Panel>
+      </TabsPanel>
 
-      <Tabs.Panel value="places">
+      <TabsPanel value="places">
         <OrganizationsView organizations={organizations} />
-      </Tabs.Panel>
+      </TabsPanel>
     </Tabs>
   );
 }

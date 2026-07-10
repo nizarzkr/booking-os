@@ -1,17 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  Alert,
-  Button,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
 
 import { completeOnboarding } from "@/app/(onboarding)/onboarding/actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function OnboardingForm() {
   const [state, formAction, isPending] = useActionState(
@@ -20,43 +15,40 @@ export function OnboardingForm() {
   );
 
   return (
-    <Paper w="100%" maw={440} p="xl" radius="lg" withBorder>
-      <form action={formAction}>
-        <Stack gap="md">
-          <Stack gap={4}>
-            <Title order={2} fw={400}>
-              Bienvenue 👋
-            </Title>
-            <Text c="dimmed" size="sm">
-              Crée ton espace de travail pour commencer. Tu pourras compléter ton
-              profil artiste plus tard.
-            </Text>
-          </Stack>
+    <Card className="w-full max-w-md">
+      <CardContent className="p-6">
+        <form action={formAction} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-semibold">Bienvenue 👋</h1>
+            <p className="text-sm text-muted-foreground">
+              Crée ton espace de travail pour commencer. Tu pourras compléter
+              ton profil artiste plus tard.
+            </p>
+          </div>
 
           {state?.error && (
-            <Alert color="red" variant="light" radius="md">
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {state.error}
-            </Alert>
+            </div>
           )}
 
-          <TextInput
-            name="name"
-            label="Nom d'artiste ou de projet"
-            placeholder="Ton nom de scène, ton groupe…"
-            required
-            data-autofocus
-          />
-          <TextInput
-            name="city"
-            label="Ville / région"
-            placeholder="Optionnel"
-          />
+          <Field label="Nom d'artiste ou de projet" htmlFor="name">
+            <Input
+              id="name"
+              name="name"
+              placeholder="Ton nom de scène, ton groupe…"
+              required
+            />
+          </Field>
+          <Field label="Ville / région" htmlFor="city">
+            <Input id="city" name="city" placeholder="Optionnel" />
+          </Field>
 
-          <Button type="submit" loading={isPending} fullWidth mt="xs">
-            Créer mon espace
+          <Button type="submit" disabled={isPending} className="mt-1 w-full">
+            {isPending ? "…" : "Créer mon espace"}
           </Button>
-        </Stack>
-      </form>
-    </Paper>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

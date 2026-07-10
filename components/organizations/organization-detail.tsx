@@ -3,20 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Divider,
-  Group,
-  Modal,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { deleteOrganization } from "@/app/(app)/organizations/actions";
 import { OrganizationFormModal } from "@/components/organizations/organization-form-modal";
@@ -25,6 +12,16 @@ import {
   type Organization,
 } from "@/components/organizations/org-types";
 import { fullName, ROLE_META, type Contact } from "@/components/contacts/roles";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   organization: Organization;
@@ -44,7 +41,7 @@ export function OrganizationDetail({ organization, linkedContacts }: Props) {
     startDelete(async () => {
       const res = await deleteOrganization(organization.id);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       router.push("/contacts?tab=places");
@@ -52,41 +49,40 @@ export function OrganizationDetail({ organization, linkedContacts }: Props) {
   }
 
   return (
-    <Stack gap="lg">
-      <Anchor component={Link} href="/contacts?tab=places" size="sm" c="dimmed">
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/contacts?tab=places"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
         ← Lieux &amp; structures
-      </Anchor>
+      </Link>
 
-      <Group justify="space-between" align="flex-start">
-        <Group gap="sm" align="center">
-          <Title order={1}>{organization.name}</Title>
-          {meta && (
-            <Badge color={meta.color} variant="light">
-              {meta.label}
-            </Badge>
-          )}
-        </Group>
-        <Group>
-          <Button variant="default" onClick={() => setEditOpen(true)}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold">{organization.name}</h1>
+          {meta && <Badge variant="secondary">{meta.label}</Badge>}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
             Modifier
           </Button>
           <Button
-            variant="subtle"
-            color="red"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10"
             onClick={() => setConfirmDelete(true)}
           >
             Supprimer
           </Button>
-        </Group>
-      </Group>
+        </div>
+      </div>
 
       {/* Infos */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Text fw={700} size="sm">
-            Informations
-          </Text>
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <InfoRow label="Ville">
               <Value>{organization.city}</Value>
             </InfoRow>
@@ -95,78 +91,61 @@ export function OrganizationDetail({ organization, linkedContacts }: Props) {
             </InfoRow>
             <InfoRow label="Site web">
               {organization.website ? (
-                <Anchor
+                <a
                   href={organization.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  size="sm"
+                  className="text-sm text-primary hover:underline"
                 >
                   {organization.website.replace(/^https?:\/\//, "")}
-                </Anchor>
+                </a>
               ) : (
                 <Dash />
               )}
             </InfoRow>
-          </SimpleGrid>
+          </div>
           {organization.notes && (
-            <>
-              <Divider />
+            <div className="border-t pt-4">
               <InfoRow label="Notes">
-                <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                <p className="whitespace-pre-wrap text-sm">
                   {organization.notes}
-                </Text>
+                </p>
               </InfoRow>
-            </>
+            </div>
           )}
-        </Stack>
+        </CardContent>
       </Card>
 
       {/* Contacts liés (lecture — liaison gérée depuis la fiche contact) */}
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          <Text fw={700} size="sm">
-            Contacts liés
-          </Text>
+      <Card>
+        <CardHeader>
+          <CardTitle>Contacts liés</CardTitle>
+        </CardHeader>
+        <CardContent>
           {linkedContacts.length === 0 ? (
-            <Text c="dimmed" size="sm">
+            <p className="text-sm text-muted-foreground">
               Aucun contact lié. Lie un contact depuis sa fiche.
-            </Text>
+            </p>
           ) : (
-            <Stack gap="xs">
+            <ul className="flex flex-col gap-2">
               {linkedContacts.map((c) => {
                 const cm = c.role ? ROLE_META[c.role] : null;
                 return (
-                  <Group key={c.id} gap="sm">
-                    <Anchor
-                      component={Link}
+                  <li key={c.id} className="flex items-center gap-2">
+                    <Link
                       href={`/contacts/${c.id}`}
-                      size="sm"
-                      fw={500}
+                      className="text-sm font-medium text-primary hover:underline"
                     >
                       {fullName(c)}
-                    </Anchor>
-                    {cm && (
-                      <Badge
-                        color={cm.color}
-                        variant="light"
-                        size="sm"
-                      >
-                        {cm.label}
-                      </Badge>
-                    )}
-                  </Group>
+                    </Link>
+                    {cm && <Badge variant="secondary">{cm.label}</Badge>}
+                  </li>
                 );
               })}
-            </Stack>
+            </ul>
           )}
-        </Stack>
+        </CardContent>
       </Card>
-
-      {/* À venir */}
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        <SoonCard title="Opportunités" step="étape 3.x" />
-        <SoonCard title="Historique" step="étape 5.x" />
-      </SimpleGrid>
 
       {editOpen && (
         <OrganizationFormModal
@@ -180,40 +159,40 @@ export function OrganizationDetail({ organization, linkedContacts }: Props) {
         />
       )}
 
-      <Modal
-        opened={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title="Supprimer l'organisation"
-        centered
+      <Dialog
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDelete(false);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{organization.name}</b> ? Cette action est
-              irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setConfirmDelete(false)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeleting}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-    </Stack>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l&apos;organisation</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{organization.name}</b> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmDelete(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              {isDeleting ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -225,38 +204,19 @@ function InfoRow({
   children: React.ReactNode;
 }) {
   return (
-    <Stack gap={2}>
-      <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
-      </Text>
+      </span>
       {children}
-    </Stack>
+    </div>
   );
 }
 
 function Value({ children }: { children: string | null }) {
-  return children ? <Text size="sm">{children}</Text> : <Dash />;
+  return children ? <span className="text-sm">{children}</span> : <Dash />;
 }
 
 function Dash() {
-  return (
-    <Text c="dimmed" size="sm">
-      —
-    </Text>
-  );
-}
-
-function SoonCard({ title, step }: { title: string; step: string }) {
-  return (
-    <Card withBorder padding="lg">
-      <Stack gap={4}>
-        <Text fw={700} size="sm">
-          {title}
-        </Text>
-        <Text c="dimmed" size="xs">
-          À venir — {step}
-        </Text>
-      </Stack>
-    </Card>
-  );
+  return <span className="text-sm text-muted-foreground">—</span>;
 }

@@ -3,22 +3,23 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Anchor,
-  Badge,
-  Button,
-  Card,
-  Group,
-  Modal,
-  Stack,
-  Text,
-  TextInput,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { toast } from "sonner";
 
 import { createSequence } from "@/app/(app)/sequences/actions";
 import { type SequenceListItem } from "@/components/sequences/sequence-types";
 import { BlueprintGallery } from "@/components/sequences/blueprint-gallery";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function SequencesList({
   sequences,
@@ -31,11 +32,12 @@ export function SequencesList({
   const [name, setName] = useState("");
   const [pending, startTransition] = useTransition();
 
-  function submitCreate() {
+  function submitCreate(e: React.FormEvent) {
+    e.preventDefault();
     startTransition(async () => {
       const res = await createSequence(name);
       if ("error" in res) {
-        notifications.show({ color: "red", message: res.error });
+        toast.error(res.error);
         return;
       }
       setCreateOpen(false);
@@ -46,62 +48,57 @@ export function SequencesList({
 
   return (
     <>
-      <Group justify="space-between" align="center" mb="lg">
-        <Text c="dimmed" size="sm">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
           {sequences.length} séquence{sequences.length > 1 ? "s" : ""}
-        </Text>
-        <Group gap="xs">
-          <Button variant="default" onClick={() => setGalleryOpen(true)}>
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setGalleryOpen(true)}>
             Partir d&apos;un modèle
           </Button>
           <Button onClick={() => setCreateOpen(true)}>Nouvelle séquence</Button>
-        </Group>
-      </Group>
+        </div>
+      </div>
 
       {sequences.length === 0 ? (
-        <Stack align="center" gap="xs" py={64}>
-          <Text fw={700}>Aucune séquence pour l&apos;instant</Text>
-          <Text c="dimmed" size="sm" ta="center" maw={420}>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="font-semibold">Aucune séquence pour l&apos;instant</p>
+          <p className="max-w-md text-sm text-muted-foreground">
             Crée une séquence de relances, ajoute des étapes avec des délais,
             puis enrôle des contacts : les emails partent tout seuls et
             s&apos;arrêtent dès qu&apos;on te répond.
-          </Text>
-          <Group gap="xs" mt="sm">
-            <Button variant="default" onClick={() => setGalleryOpen(true)}>
+          </p>
+          <div className="mt-2 flex gap-2">
+            <Button variant="outline" onClick={() => setGalleryOpen(true)}>
               Partir d&apos;un modèle
             </Button>
             <Button onClick={() => setCreateOpen(true)}>Nouvelle séquence</Button>
-          </Group>
-        </Stack>
+          </div>
+        </div>
       ) : (
-        <Stack gap="sm">
+        <div className="flex flex-col gap-3">
           {sequences.map((s) => (
-            <Card
+            <Link
               key={s.id}
-              withBorder
-              padding="md"
-              radius="md"
-              component={Link}
               href={`/sequences/${s.id}`}
-              className="interactive-card"
-              style={{ textDecoration: "none" }}
+              className="interactive-card block rounded-xl"
             >
-              <Group justify="space-between" wrap="nowrap">
-                <Anchor component="span" fw={600}>
-                  {s.name}
-                </Anchor>
-                <Group gap="xs" wrap="nowrap">
-                  <Badge variant="light" color="gray">
-                    {s.stepCount} étape{s.stepCount > 1 ? "s" : ""}
-                  </Badge>
-                  <Badge variant="light" color="blue">
-                    {s.activeCount} actif{s.activeCount > 1 ? "s" : ""}
-                  </Badge>
-                </Group>
-              </Group>
-            </Card>
+              <Card>
+                <CardContent className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">{s.name}</span>
+                  <div className="flex gap-2">
+                    <StatusBadge color="gray">
+                      {s.stepCount} étape{s.stepCount > 1 ? "s" : ""}
+                    </StatusBadge>
+                    <StatusBadge color="blue">
+                      {s.activeCount} actif{s.activeCount > 1 ? "s" : ""}
+                    </StatusBadge>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
-        </Stack>
+        </div>
       )}
 
       <BlueprintGallery
@@ -109,43 +106,40 @@ export function SequencesList({
         onClose={() => setGalleryOpen(false)}
       />
 
-      <Modal
-        opened={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Nouvelle séquence"
-        centered
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          if (!open) setCreateOpen(false);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitCreate();
-          }}
-        >
-          <Stack gap="md">
-            <TextInput
-              label="Nom de la séquence"
-              placeholder="Ex. Prospection salles automne"
-              value={name}
-              onChange={(e) => setName(e.currentTarget.value)}
-              data-autofocus
-              required
-            />
-            <Group justify="flex-end">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle séquence</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitCreate} className="flex flex-col gap-4">
+            <Field label="Nom de la séquence" htmlFor="seq_name" required>
+              <Input
+                id="seq_name"
+                placeholder="Ex. Prospection salles automne"
+                value={name}
+                onChange={(e) => setName(e.currentTarget.value)}
+              />
+            </Field>
+            <DialogFooter>
               <Button
                 type="button"
-                variant="subtle"
-                color="gray"
+                variant="ghost"
                 onClick={() => setCreateOpen(false)}
               >
                 Annuler
               </Button>
-              <Button type="submit" loading={pending}>
-                Créer
+              <Button type="submit" disabled={pending}>
+                {pending ? "Création…" : "Créer"}
               </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

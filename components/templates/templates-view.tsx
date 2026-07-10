@@ -2,14 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Button,
-  Card,
-  Group,
-  Modal,
-  Stack,
-  Text,
-} from "@mantine/core";
 
 import { deleteTemplate } from "@/app/(app)/templates/actions";
 import { TemplateFormModal } from "@/components/templates/template-form-modal";
@@ -19,6 +11,15 @@ import {
   type PreviewOpportunity,
 } from "@/components/templates/template-preview-modal";
 import { type EmailTemplate } from "@/components/templates/template-types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   templates: EmailTemplate[];
@@ -68,64 +69,56 @@ export function TemplatesView({
 
   return (
     <>
-      <Group justify="space-between" align="center" mb="lg">
-        <Text c="dimmed" size="sm">
-          {templates.length} template{templates.length > 1 ? "s" : ""}
-        </Text>
-        <Button onClick={openCreate}>Ajouter un template</Button>
-      </Group>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {templates.length} modèle{templates.length > 1 ? "s" : ""}
+        </p>
+        <Button onClick={openCreate}>Ajouter un modèle</Button>
+      </div>
 
       {templates.length === 0 ? (
-        <Stack align="center" gap="xs" py={64}>
-          <Text fw={700}>Aucun template pour l&apos;instant</Text>
-          <Text c="dimmed" size="sm" ta="center" maw={400}>
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="font-semibold">Aucun modèle pour l&apos;instant</p>
+          <p className="max-w-md text-sm text-muted-foreground">
             Crée des modèles d&apos;email réutilisables (prise de contact,
             relance, confirmation) avec des variables comme{" "}
             <b>{"{{contact_name}}"}</b> ou <b>{"{{gig_date}}"}</b>.
-          </Text>
-          <Button onClick={openCreate} mt="sm">
-            Ajouter un template
+          </p>
+          <Button onClick={openCreate} className="mt-2">
+            Ajouter un modèle
           </Button>
-        </Stack>
+        </div>
       ) : (
-        <Stack gap="sm">
+        <div className="flex flex-col gap-3">
           {templates.map((t) => (
-            <Card key={t.id} withBorder padding="lg">
-              <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Stack gap={2}>
-                  <Text fw={700}>{t.name}</Text>
-                  <Text c="dimmed" size="sm">
+            <Card key={t.id}>
+              <CardContent className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <p className="font-semibold">{t.name}</p>
+                  <p className="text-sm text-muted-foreground">
                     {t.subject || "Sans objet"}
-                  </Text>
-                </Stack>
-                <Group gap="xs" wrap="nowrap">
-                  <Button
-                    variant="default"
-                    size="compact-sm"
-                    onClick={() => setPreviewing(t)}
-                  >
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPreviewing(t)}>
                     Aperçu
                   </Button>
-                  <Button
-                    variant="default"
-                    size="compact-sm"
-                    onClick={() => openEdit(t)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => openEdit(t)}>
                     Modifier
                   </Button>
                   <Button
-                    variant="subtle"
-                    color="red"
-                    size="compact-sm"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10"
                     onClick={() => setDeleting(t)}
                   >
                     Supprimer
                   </Button>
-                </Group>
-              </Group>
+                </div>
+              </CardContent>
             </Card>
           ))}
-        </Stack>
+        </div>
       )}
 
       {formOpen && (
@@ -148,38 +141,39 @@ export function TemplatesView({
         />
       )}
 
-      <Modal
-        opened={deleting !== null}
-        onClose={() => setDeleting(null)}
-        title="Supprimer le template"
-        centered
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            confirmDelete();
-          }}
-        >
-          <Stack gap="md">
-            <Text size="sm">
-              Supprimer <b>{deleting?.name}</b> ? Cette action est irréversible.
-            </Text>
-            <Group justify="flex-end">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => setDeleting(null)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" color="red" loading={isDeletePending}>
-                Supprimer
-              </Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le modèle</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <b className="text-foreground">{deleting?.name}</b> ? Cette
+            action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletePending}
+              onClick={confirmDelete}
+            >
+              {isDeletePending ? "Suppression…" : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

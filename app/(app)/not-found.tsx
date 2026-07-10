@@ -1,21 +1,21 @@
-import { Button, Stack, Text, Title } from "@mantine/core";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 
 /**
- * 404 des routes applicatives — rendu dans le shell (sidebar), déclenché par
+ * 404 des routes applicatives — rendu dans le shell (header), déclenché par
  * les `notFound()` des fiches (contact / opportunité / organisation absente).
  */
 export default function NotFound() {
   return (
-    <Stack align="center" gap="xs" py={64}>
-      <Title order={2} fw={600}>
-        Introuvable
-      </Title>
-      <Text c="dimmed" size="sm" ta="center" maw={420}>
+    <div className="flex flex-col items-center gap-2 py-16 text-center">
+      <h2 className="text-xl font-semibold">Introuvable</h2>
+      <p className="max-w-md text-sm text-muted-foreground">
         {"Cette page ou cette fiche n'existe pas (ou plus)."}
-      </Text>
-      <Button component="a" href="/dashboard" mt="sm">
+      </p>
+      <Button render={<Link href="/dashboard" />} className="mt-2">
         Retour au dashboard
       </Button>
-    </Stack>
+    </div>
   );
 }

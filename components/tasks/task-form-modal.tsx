@@ -1,17 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Group,
-  Modal,
-  Select,
-  Stack,
-  TextInput,
-} from "@mantine/core";
-import { DateInput } from "@mantine/dates";
-import { useForm } from "@mantine/form";
 
 import {
   createTask,
@@ -19,6 +8,24 @@ import {
   type TaskInput,
 } from "@/app/(app)/tasks/actions";
 import { type Task } from "@/components/tasks/task-types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type LinkOption = { value: string; label: string };
 
@@ -28,16 +35,11 @@ type Props = {
   task: Task | null; // null = création
   opportunityOptions: LinkOption[];
   contactOptions: LinkOption[];
-  // Pré-remplissage + verrouillage des liens (création depuis une fiche).
   presetOpportunityId?: string | null;
   presetContactId?: string | null;
   lockLinks?: boolean;
 };
 
-/**
- * Monté uniquement quand ouvert (remonté via `key`) → initialValues frais,
- * aucun useEffect. Depuis une fiche, les liens sont pré-remplis et masqués.
- */
 export function TaskFormModal({
   onClose,
   onSaved,
@@ -48,30 +50,34 @@ export function TaskFormModal({
   presetContactId = null,
   lockLinks = false,
 }: Props) {
+  const [title, setTitle] = useState(task?.title ?? "");
+  const [dueDate, setDueDate] = useState<string | null>(task?.due_date ?? null);
+  const [opportunityId, setOpportunityId] = useState<string>(
+    task?.opportunity_id ?? presetOpportunityId ?? "",
+  );
+  const [contactId, setContactId] = useState<string>(
+    task?.contact_id ?? presetContactId ?? "",
+  );
+
+  const [titleError, setTitleError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const form = useForm({
-    mode: "uncontrolled",
-    initialValues: {
-      title: task?.title ?? "",
-      due_date: task?.due_date ?? null,
-      opportunity_id: task?.opportunity_id ?? presetOpportunityId,
-      contact_id: task?.contact_id ?? presetContactId,
-    },
-    validate: {
-      title: (v) => (v.trim() ? null : "Ce champ est requis."),
-    },
-  });
-
-  const handleSubmit = form.onSubmit(async (values) => {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) {
+      setTitleError("Ce champ est requis.");
+      return;
+    }
+    setTitleError(undefined);
     setLoading(true);
     setServerError(null);
+
     const input: TaskInput = {
-      title: values.title,
-      due_date: values.due_date,
-      opportunity_id: values.opportunity_id,
-      contact_id: values.contact_id,
+      title,
+      due_date: dueDate,
+      opportunity_id: opportunityId || null,
+      contact_id: contactId || null,
     };
     const result = task
       ? await updateTask(task.id, input)
@@ -83,76 +89,97 @@ export function TaskFormModal({
       return;
     }
     onSaved();
-  });
+  }
 
   return (
-    <Modal
-      opened
-      onClose={onClose}
-      title={task ? "Modifier la tâche" : "Nouvelle tâche"}
-      centered
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <form onSubmit={handleSubmit}>
-        <Stack gap="sm">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {task ? "Modifier la tâche" : "Nouvelle tâche"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {serverError && (
-            <Alert color="red" variant="light" radius="md">
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {serverError}
-            </Alert>
+            </div>
           )}
 
-          <TextInput
-            label="Titre"
-            placeholder="Relancer pour la date d'automne"
-            required
-            data-autofocus
-            key={form.key("title")}
-            {...form.getInputProps("title")}
-          />
+          <Field label="Titre" htmlFor="title" required error={titleError}>
+            <Input
+              id="title"
+              placeholder="Relancer pour la date d'automne"
+              value={title}
+              onChange={(e) => setTitle(e.currentTarget.value)}
+            />
+          </Field>
 
-          <DateInput
-            label="Échéance"
-            placeholder="Choisir une date…"
-            valueFormat="D MMMM YYYY"
-            clearable
-            key={form.key("due_date")}
-            {...form.getInputProps("due_date")}
-          />
+          <Field label="Échéance" htmlFor="due_date">
+            <DatePicker id="due_date" value={dueDate} onChange={setDueDate} />
+          </Field>
 
           {!lockLinks && (
-            <Group grow>
-              <Select
-                label="Opportunité"
-                placeholder="Aucune"
-                data={opportunityOptions}
-                searchable
-                clearable
-                nothingFoundMessage="Aucune opportunité"
-                key={form.key("opportunity_id")}
-                {...form.getInputProps("opportunity_id")}
-              />
-              <Select
-                label="Contact"
-                placeholder="Aucun"
-                data={contactOptions}
-                searchable
-                clearable
-                nothingFoundMessage="Aucun contact"
-                key={form.key("contact_id")}
-                {...form.getInputProps("contact_id")}
-              />
-            </Group>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Opportunité">
+                <Select
+                  value={opportunityId}
+                  onValueChange={(v) => setOpportunityId(String(v ?? ""))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Aucune" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Aucune</SelectItem>
+                    {opportunityOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Contact">
+                <Select
+                  value={contactId}
+                  onValueChange={(v) => setContactId(String(v ?? ""))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Aucun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Aucun</SelectItem>
+                    {contactOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
           )}
 
-          <Group justify="flex-end" mt="xs">
-            <Button variant="subtle" color="gray" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" loading={loading}>
-              {task ? "Enregistrer" : "Créer la tâche"}
+            <Button type="submit" disabled={loading}>
+              {loading
+                ? "Enregistrement…"
+                : task
+                  ? "Enregistrer"
+                  : "Créer la tâche"}
             </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Modal>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
